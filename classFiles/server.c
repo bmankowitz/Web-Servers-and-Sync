@@ -15,6 +15,7 @@
 #define LOG        44
 #define FORBIDDEN 403
 #define NOTFOUND  404
+//hello world
 struct {
 	char *ext;
 	char *filetype;
