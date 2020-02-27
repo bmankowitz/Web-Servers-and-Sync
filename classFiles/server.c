@@ -16,6 +16,13 @@
 #define FORBIDDEN 403
 #define NOTFOUND  404
 
+//Scheduling Definitions:
+//TODO: make this a cmd arg?
+#define ANY 0
+#define FIFO 1
+#define HPIC 2
+#define HPHC 3
+
 typedef struct{
 	int job_id;
 	int job_fd; // the socket file descriptor   // what other stuff needs to be here eventually?
@@ -59,13 +66,13 @@ static void *tpool_worker(void *arg)
 	while (1) {
 		job_t *job;
 		pthread_mutex_lock(&(tm->work_mutex));
-		while (THERE_IS_NO_WORK_TO_BE_DONE)//FIXME 
+		while (THERE_IS_NO_WORK_TO_BE_DONE)//FIXME: 
 			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex));
-		job = REMOVE_JOB_FROM_BUFFER(tm);
+		job = REMOVE_JOB_FROM_BUFFER(tm);//FIXME:
 		pthread_mutex_unlock(&(tm->work_mutex));
-		DO_THE_WORK(job); // call web() plus ??
+		DO_THE_WORK(job); //FIXME: call web() plus ??
 		pthread_mutex_lock(&(tm->work_mutex));        
-		if (SHOULD_WAKE_UP_THE_PRODUCER)//TODO FIX THIS LINE         
+		if (SHOULD_WAKE_UP_THE_PRODUCER)//TODO: FIX THIS LINE         
 			pthread_cond_signal(&(tm->p_cond));        
 		pthread_mutex_unlock(&(tm->work_mutex));    
 	}  
@@ -223,6 +230,28 @@ struct {
 		endRequest:
 			sleep(1); /* allow socket to drain before signalling the socket is closed */
 			close(fd);
+		}
+		void schedulingPolicy(int policy){
+			switch (policy)
+			{
+			case ANY:
+				/* fall through */
+			case FIFO:
+				//get oldest item in buffer and work on it
+				break;
+			case HPIC:
+				//Highest priority to image content- dont do any other work if img is available
+
+				break;
+			case HPHC:
+				//highest priority to HTML content - dont do any other work if HTML is available
+				break;
+			
+			default:
+				break;
+			}
+
+
 		}
 		
 		int main(int argc, char **argv){
