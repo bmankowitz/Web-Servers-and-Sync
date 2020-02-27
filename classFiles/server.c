@@ -17,6 +17,7 @@
 #define NOTFOUND  404
 //hello world
 //Goodbye zugat
+//lets do a merge
 struct {
 	char *ext;
 	char *filetype;
