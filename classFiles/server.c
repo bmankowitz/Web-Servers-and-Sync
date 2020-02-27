@@ -16,6 +16,7 @@
 #define FORBIDDEN 403
 #define NOTFOUND  404
 //hello world
+//Goodbye zugat
 struct {
 	char *ext;
 	char *filetype;
