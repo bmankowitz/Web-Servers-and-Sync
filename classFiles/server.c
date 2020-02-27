@@ -36,7 +36,7 @@ typedef struct {
 	pthread_mutex_t work_mutex;    
 	pthread_cond_t c_cond; // P/C condition variables    
 	pthread_cond_t p_cond;
-} tpool_t
+} tpool_t;
 
 static tpool_t the_pool; // one pool to rule them all
 
