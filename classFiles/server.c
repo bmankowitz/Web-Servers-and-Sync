@@ -15,8 +15,6 @@
 #define LOG        44
 #define FORBIDDEN 403
 #define NOTFOUND  404
-//commit works, be see this message
-//what about this?
 struct {
 	char *ext;
 	char *filetype;
