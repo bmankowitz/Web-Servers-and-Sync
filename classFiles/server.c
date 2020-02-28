@@ -25,7 +25,8 @@
 
 typedef struct{
 	int job_id;
-	int job_fd; // the socket file descriptor   // what other stuff needs to be here eventually?
+	int job_fd; // the socket file descriptor   
+	// what other stuff needs to be here eventually?
 } job_t;
 
 typedef struct {
