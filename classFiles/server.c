@@ -69,7 +69,7 @@ static void *tpool_worker(void *arg)
 		pthread_mutex_lock(&(tm->work_mutex));
 		while (tm->buf_capacity == 0) //FIXME: THERE_IS_NO_WORK_TO_BE_DONE
 			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the mutex, " a worker thread must wait if the buffer is empty." says the doc
-		job = tm->jobBuffer[sizeof(job_t) * tm->tail++]; //FIXME: REMOVE_JOB_FROM_BUFFER, find where in the jobBuffer array to read from and increment tail
+		job = tm->jobBuffer[sizeof(job_t) * tm->head++]; //FIXME: REMOVE_JOB_FROM_BUFFER, find where in the jobBuffer array to read from and increment head, read from head
 		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
 		DO_THE_WORK(job); //FIXME: call web() plus ??, what other method would we call ben?...ill leave this line for you
@@ -83,10 +83,14 @@ static void *tpool_worker(void *arg)
 		
 bool tpool_add_work(tpool_t * tm, job_t job){
 pthread_mutex_lock(&(tm->work_mutex));
-while (THE_BUFFER_IS_FULL) pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));//FIXME, THIS SHOULD BE A LOOP OF JUST pthres_cond_wait
-	ADD_JOB_TO_BUFFER(tm, job); //FIXME: implement this method...
+/*While THE_BUFFER_IS_FULL*/
+while (tm->buf_capacity == BUFSIZE) {
+	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));
+	}//FIXME, THIS SHOULD BE A LOOP OF JUST pthres_cond_wait...lichora fixed...double check ben to make sure a fixed this loop as yout intended
+	 /*ADD_JOB_TO_BUFFER -> add at the tail, seemingly*/
+	tm->jobBuffer[sizeof(job_t)*tm->tail] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
 	
-	// Wake the Keystone Cops!! (improve this eventually)    
+	// Wake the Keystone Cops!! (improve this eventually), what the hell is a keystone cop...I think this is a Kelly note not a mank the tank note   
 	pthread_cond_broadcast(&(tm->c_cond));    
 	pthread_mutex_unlock(&(tm->work_mutex));  
 	return true;
@@ -135,10 +139,11 @@ struct {
 				break;
 			}
 			/* No checks here, nothing can be done with a failure anyway */
-			if ((fd = open("nweb.log", O_CREAT | O_WRONLY | O_APPEND, 0644)) >= 0){
-				dummy = write(fd, logbuffer, strlen(logbuffer));
-				dummy = write(fd, "\n", 1);
-				(void)close(fd);
+	if ((fd = open("nweb.log", O_CREAT | O_WRONLY | O_APPEND, 0644)) >= 0)
+	{
+		dummy = write(fd, logbuffer, strlen(logbuffer));
+		dummy = write(fd, "\n", 1);
+		(void)close(fd);
 			}
 		}
 
