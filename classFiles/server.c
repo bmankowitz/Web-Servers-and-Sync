@@ -46,8 +46,8 @@ typedef void *(worker_fn)(void *);
 void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *worker){
 	pthread_t thread;
 	size_t i;
-	pthread_mutex_init(&(tm->work_mutex), NULL);
-	pthread_cond_init(&(tm->p_cond), NULL);
+	pthread_mutex_init(&(tm->work_mutex), NULL);//create a mutex
+	pthread_cond_init(&(tm->p_cond), NULL);//
 	pthread_cond_init(&(tm->c_cond), NULL);
 
 	// initialize buffer to empty condition    
@@ -63,17 +63,18 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 static void *tpool_worker(void *arg)
 {
 	tpool_t *tm = &the_pool;
-	int my_id = (int)arg;
+	int my_id = (int) arg;
 	while (1) {
 		job_t *job;
 		pthread_mutex_lock(&(tm->work_mutex));
-		while (THERE_IS_NO_WORK_TO_BE_DONE)//FIXME: 
-			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex));
-		job = REMOVE_JOB_FROM_BUFFER(tm);//FIXME:
-		pthread_mutex_unlock(&(tm->work_mutex));
-		DO_THE_WORK(job); //FIXME: call web() plus ??
-		pthread_mutex_lock(&(tm->work_mutex));        
-		if (SHOULD_WAKE_UP_THE_PRODUCER)//TODO: FIX THIS LINE         
+		while (tm->buf_capacity == 0) //FIXME: THERE_IS_NO_WORK_TO_BE_DONE
+			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the mutex, " a worker thread must wait if the buffer is empty." says the doc
+		job = tm->jobBuffer[sizeof(job_t) * tm->tail++]; //FIXME: REMOVE_JOB_FROM_BUFFER, find where in the jobBuffer array to read from and increment tail
+		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
+		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
+		DO_THE_WORK(job); //FIXME: call web() plus ??, what other method would we call ben?...ill leave this line for you
+		pthread_mutex_lock(&(tm->work_mutex));
+		if (tm->buf_capacity == 0) //TODO:SHOULD_WAKE_UP_THE_PRODUCER, wake up producer when the buffer needs some stuff that the producer can produce
 			pthread_cond_signal(&(tm->p_cond));        
 		pthread_mutex_unlock(&(tm->work_mutex));    
 	}  
@@ -83,7 +84,7 @@ static void *tpool_worker(void *arg)
 bool tpool_add_work(tpool_t * tm, job_t job){
 pthread_mutex_lock(&(tm->work_mutex));
 while (THE_BUFFER_IS_FULL) pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));//FIXME, THIS SHOULD BE A LOOP OF JUST pthres_cond_wait
-	ADD_JOB_TO_BUFFER(tm, job); //TODO, implement this method...
+	ADD_JOB_TO_BUFFER(tm, job); //FIXME: implement this method...
 	
 	// Wake the Keystone Cops!! (improve this eventually)    
 	pthread_cond_broadcast(&(tm->c_cond));    
@@ -169,7 +170,7 @@ struct {
 					buffer[i] = '*';
 				}
 			}
-			logger(LOG, "request", buffer, hit);
+			logger(LOG, "request", buffer, hit);//LOG == 44
 			if (strncmp(buffer, "GET ", 4) && strncmp(buffer, "get ", 4))
 			{
 				logger(FORBIDDEN, "Only simple GET operation supported", buffer, fd);
