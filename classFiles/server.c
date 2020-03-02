@@ -76,11 +76,11 @@ static void *tpool_worker(void *arg)
 		job = tm->jobBuffer[tm->head++];//REMOVE_JOB_FROM_BUFFER, read from head of the buffer and then increment the head to next spot in the buffer
 		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
-		DO_THE_WORK(job); //FIXME: call web() and what?
+		web(); //FIXME: call web() and what?
 		/*After the work has been done on the job, lock the mutex and enter the critical zone to see if the producer needs to be woken up,
 		if he needs to be woken up, that is, when the buffer is empty then call cond_signal*/
 		pthread_mutex_lock(&(tm->work_mutex));
-		if (tm->buf_capacity == 0) //TODO:SHOULD_WAKE_UP_THE_PRODUCER, wake up producer when the buffer needs some stuff that the producer can produce
+		if (tm->buf_capacity == 0) //SHOULD_WAKE_UP_THE_PRODUCER, wake up producer when the buffer needs some stuff that the producer can produce
 			pthread_cond_signal(&(tm->p_cond));        
 		pthread_mutex_unlock(&(tm->work_mutex));    
 	}  
@@ -127,6 +127,7 @@ struct {
 	static int dummy; //keep compiler happy
 
 	void logger(int type, char *s1, char *s2, int socket_fd) {
+		//socket_fd is the socket file descriptor
 		int fd;
 		char logbuffer[BUFSIZE * 2];
 
@@ -147,13 +148,13 @@ struct {
 				break;
 			}
 			/* No checks here, nothing can be done with a failure anyway */
-	if ((fd = open("nweb.log", O_CREAT | O_WRONLY | O_APPEND, 0644)) >= 0)
-	{
-		dummy = write(fd, logbuffer, strlen(logbuffer));
-		dummy = write(fd, "\n", 1);
-		(void)close(fd);
-			}
+		if ((fd = open("nweb.log", O_CREAT | O_WRONLY | O_APPEND, 0644)) >= 0)
+		{
+			dummy = write(fd, logbuffer, strlen(logbuffer));
+			dummy = write(fd, "\n", 1);
+			(void)close(fd);
 		}
+	}
 
 			/* this is a child web server process, so we can exit on errors */
 		void web(int fd, int hit) {
