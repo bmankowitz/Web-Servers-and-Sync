@@ -63,7 +63,7 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 		pthread_detach(thread); // make non-joinable    
 	}
 }
-
+/*This is the consumer. Each thread is consuming a 'job' and is performing that job by DO_THE_WORK*/
 static void *tpool_worker(void *arg)
 {
 	tpool_t *tm = &the_pool;
@@ -77,6 +77,8 @@ static void *tpool_worker(void *arg)
 		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
 		DO_THE_WORK(job); //FIXME: call web() plus ??, what other method would we call ben?...ill leave this line for you
+		/*After the work has been done on the job, lock the mutex and enter the critical zone to see if the producer needs to be woken up,
+		if he needs to be woken up, that is, when the buffer is empty then call cond_signal*/
 		pthread_mutex_lock(&(tm->work_mutex));
 		if (tm->buf_capacity == 0) //TODO:SHOULD_WAKE_UP_THE_PRODUCER, wake up producer when the buffer needs some stuff that the producer can produce
 			pthread_cond_signal(&(tm->p_cond));        
