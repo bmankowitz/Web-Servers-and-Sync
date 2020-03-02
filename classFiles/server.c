@@ -52,8 +52,12 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 
 	// initialize buffer to empty condition    
 	tm->head = tm->tail = 0;    
-	tm->buf_capacity = buf_size;    
-	//... CALLOC_ACTUAL_BUFFER_SPACE_ON_HEAP
+	tm->buf_capacity = buf_size;   
+
+	//FIXED: CALLOC_ACTUAL_BUFFER_SPACE_ON_HEAP
+	tm->jobBuffer = (job_t*)calloc(tm->buf_capacity, sizeof(job_t));
+	//https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
+
 	for (i = 0; i < num_threads; i++){
 		pthread_create(&thread, NULL, worker, (void *)i + 1);
 		pthread_detach(thread); // make non-joinable    
@@ -66,10 +70,10 @@ static void *tpool_worker(void *arg)
 	int my_id = (int) arg;
 	while (1) {
 		job_t *job;
-		pthread_mutex_lock(&(tm->work_mutex));
-		while (tm->buf_capacity == 0) //FIXME: THERE_IS_NO_WORK_TO_BE_DONE
-			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the mutex, " a worker thread must wait if the buffer is empty." says the doc
-		job = tm->jobBuffer[sizeof(job_t) * tm->head++]; //FIXME: REMOVE_JOB_FROM_BUFFER, find where in the jobBuffer array to read from and increment head, read from head
+		pthread_mutex_lock(&(tm->work_mutex));//"A thread wishing to enter the critical region first tries to lock the associated mutex" -our sefer
+		while (tm->buf_capacity == 0) //AKA: THERE_IS_NO_WORK_TO_BE_DONE and thus we should block til there is work to be done
+			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the work_mutex, "a worker thread must wait if the buffer is empty." says the doc
+		job = tm->jobBuffer[sizeof(job_t) * tm->head++];//REMOVE_JOB_FROM_BUFFER, read from head of the buffer and then increment the head to next spot in the buffer
 		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
 		DO_THE_WORK(job); //FIXME: call web() plus ??, what other method would we call ben?...ill leave this line for you
