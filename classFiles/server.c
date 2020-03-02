@@ -76,7 +76,7 @@ static void *tpool_worker(void *arg)
 		job = tm->jobBuffer[tm->head++];//REMOVE_JOB_FROM_BUFFER, read from head of the buffer and then increment the head to next spot in the buffer
 		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
-		DO_THE_WORK(job); //FIXME: call web() plus ??, what other method would we call ben?...ill leave this line for you
+		DO_THE_WORK(job); //FIXME: call web() and what?
 		/*After the work has been done on the job, lock the mutex and enter the critical zone to see if the producer needs to be woken up,
 		if he needs to be woken up, that is, when the buffer is empty then call cond_signal*/
 		pthread_mutex_lock(&(tm->work_mutex));
