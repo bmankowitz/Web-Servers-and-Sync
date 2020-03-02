@@ -25,7 +25,8 @@
 
 typedef struct{
 	int job_id;
-	int job_fd; // the socket file descriptor   // what other stuff needs to be here eventually?
+	int job_fd; // the socket file descriptor   
+	// what other stuff needs to be here eventually?
 } job_t;
 
 typedef struct {
@@ -45,46 +46,59 @@ typedef void *(worker_fn)(void *);
 void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *worker){
 	pthread_t thread;
 	size_t i;
-	pthread_mutex_init(&(tm->work_mutex), NULL);
-	pthread_cond_init(&(tm->p_cond), NULL);
+	pthread_mutex_init(&(tm->work_mutex), NULL);//create a mutex
+	pthread_cond_init(&(tm->p_cond), NULL);//
 	pthread_cond_init(&(tm->c_cond), NULL);
 
 	// initialize buffer to empty condition    
 	tm->head = tm->tail = 0;    
-	tm->buf_capacity = buf_size;    
-	//... CALLOC_ACTUAL_BUFFER_SPACE_ON_HEAP
+	tm->buf_capacity = buf_size;   
+
+	//FIXED: CALLOC_ACTUAL_BUFFER_SPACE_ON_HEAP
+	tm->jobBuffer = (job_t*)calloc(tm->buf_capacity, sizeof(job_t));
+	//https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
+
 	for (i = 0; i < num_threads; i++){
 		pthread_create(&thread, NULL, worker, (void *)i + 1);
 		pthread_detach(thread); // make non-joinable    
 	}
 }
-
+/*This is the consumer. Each thread is consuming a 'job' and is performing that job by DO_THE_WORK*/
 static void *tpool_worker(void *arg)
 {
 	tpool_t *tm = &the_pool;
-	int my_id = (int)arg;
+	int my_id = (int) arg;
 	while (1) {
 		job_t *job;
+		pthread_mutex_lock(&(tm->work_mutex));//"A thread wishing to enter the critical region first tries to lock the associated mutex" -our sefer
+		while (tm->buf_capacity == 0) //AKA: THERE_IS_NO_WORK_TO_BE_DONE and thus we should block til there is work to be done
+			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the work_mutex, "a worker thread must wait if the buffer is empty." says the doc
+		job = tm->jobBuffer[tm->head++];//REMOVE_JOB_FROM_BUFFER, read from head of the buffer and then increment the head to next spot in the buffer
+		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
+		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
+		web(); //FIXME: call web() and what?
+		/*After the work has been done on the job, lock the mutex and enter the critical zone to see if the producer needs to be woken up,
+		if he needs to be woken up, that is, when the buffer is empty then call cond_signal*/
 		pthread_mutex_lock(&(tm->work_mutex));
-		while (THERE_IS_NO_WORK_TO_BE_DONE)//FIXME: 
-			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex));
-		job = REMOVE_JOB_FROM_BUFFER(tm);//FIXME:
-		pthread_mutex_unlock(&(tm->work_mutex));
-		DO_THE_WORK(job); //FIXME: call web() plus ??
-		pthread_mutex_lock(&(tm->work_mutex));        
-		if (SHOULD_WAKE_UP_THE_PRODUCER)//TODO: FIX THIS LINE         
+		if (tm->buf_capacity == 0) //SHOULD_WAKE_UP_THE_PRODUCER, wake up producer when the buffer needs some stuff that the producer can produce
 			pthread_cond_signal(&(tm->p_cond));        
 		pthread_mutex_unlock(&(tm->work_mutex));    
 	}  
 	return NULL;
 }
-		
+
+/*This is, lichora, the producer, AKA where the master thread will hand of jobs to the other threads*/
 bool tpool_add_work(tpool_t * tm, job_t job){
 pthread_mutex_lock(&(tm->work_mutex));
-while (THE_BUFFER_IS_FULL) pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));//FIXME, THIS SHOULD BE A LOOP OF JUST pthres_cond_wait
-	ADD_JOB_TO_BUFFER(tm, job); //TODO, implement this method...
+/*While THE_BUFFER_IS_FULL*/
+while (tm->buf_capacity == BUFSIZE) {
+	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));//wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
+	}
+	 /*ADD_JOB_TO_BUFFER -> add a job at the tail, seemingly*/
+	tm->jobBuffer[tm->tail++] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
+	//REMEMBER, the tail could be zero, but we will never have the head>tail cuz then it would mean we are reading data that hasn't been inserted
 	
-	// Wake the Keystone Cops!! (improve this eventually)    
+	// Wake the Keystone Cops!! (improve this eventually), what the hell is a keystone cop...I think this is a Kelly note not a mank-the-tank ha'arah   
 	pthread_cond_broadcast(&(tm->c_cond));    
 	pthread_mutex_unlock(&(tm->work_mutex));  
 	return true;
@@ -113,6 +127,7 @@ struct {
 	static int dummy; //keep compiler happy
 
 	void logger(int type, char *s1, char *s2, int socket_fd) {
+		//socket_fd is the socket file descriptor
 		int fd;
 		char logbuffer[BUFSIZE * 2];
 
@@ -133,12 +148,13 @@ struct {
 				break;
 			}
 			/* No checks here, nothing can be done with a failure anyway */
-			if ((fd = open("nweb.log", O_CREAT | O_WRONLY | O_APPEND, 0644)) >= 0){
-				dummy = write(fd, logbuffer, strlen(logbuffer));
-				dummy = write(fd, "\n", 1);
-				(void)close(fd);
-			}
+		if ((fd = open("nweb.log", O_CREAT | O_WRONLY | O_APPEND, 0644)) >= 0)
+		{
+			dummy = write(fd, logbuffer, strlen(logbuffer));
+			dummy = write(fd, "\n", 1);
+			(void)close(fd);
 		}
+	}
 
 			/* this is a child web server process, so we can exit on errors */
 		void web(int fd, int hit) {
@@ -168,7 +184,7 @@ struct {
 					buffer[i] = '*';
 				}
 			}
-			logger(LOG, "request", buffer, hit);
+			logger(LOG, "request", buffer, hit);//LOG == 44
 			if (strncmp(buffer, "GET ", 4) && strncmp(buffer, "get ", 4))
 			{
 				logger(FORBIDDEN, "Only simple GET operation supported", buffer, fd);
