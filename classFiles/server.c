@@ -43,6 +43,8 @@ static tpool_t the_pool; // one pool to rule them all
 
 typedef void *(worker_fn)(void *);
 
+/*ou must have a master thread that begins by creating 
+ pool of worker threads, the number of which is specified on the command line.*/
 void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *worker){
 	pthread_t thread;
 	size_t i;
@@ -73,10 +75,15 @@ static void *tpool_worker(void *arg)
 		pthread_mutex_lock(&(tm->work_mutex));//"A thread wishing to enter the critical region first tries to lock the associated mutex" -our sefer
 		while (tm->buf_capacity == 0) //AKA: THERE_IS_NO_WORK_TO_BE_DONE and thus we should block til there is work to be done
 			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the work_mutex, "a worker thread must wait if the buffer is empty." says the doc
+		/* Once the worker thread wakes, it performs the read on the network descriptor,
+		obtains the specified content (by reading the specified static file),
+		 and then returns the content to the client by writing to the descriptor
+		*/
+		//possibly make a call to getJob() depending on what the scheduling procedure is, fix line below
 		job = tm->jobBuffer[tm->head++];//REMOVE_JOB_FROM_BUFFER, read from head of the buffer and then increment the head to next spot in the buffer
 		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
-		web(); //FIXME: call web() and what?
+		web(job->job_fd, 1); //FIXME: call web() and what? the "what" i think is to wait for another request
 		/*After the work has been done on the job, lock the mutex and enter the critical zone to see if the producer needs to be woken up,
 		if he needs to be woken up, that is, when the buffer is empty then call cond_signal*/
 		pthread_mutex_lock(&(tm->work_mutex));
@@ -87,11 +94,11 @@ static void *tpool_worker(void *arg)
 	return NULL;
 }
 
-/*This is, lichora, the producer, AKA where the master thread will hand of jobs to the other threads*/
+/*This is, lich'ora, the producer, AKA where the master thread will hand off jobs to the other threads*/
 bool tpool_add_work(tpool_t * tm, job_t job){
 pthread_mutex_lock(&(tm->work_mutex));
 /*While THE_BUFFER_IS_FULL*/
-while (tm->buf_capacity == BUFSIZE) {
+while (tm->buf_capacity == ) {
 	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));//wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
 	}
 	 /*ADD_JOB_TO_BUFFER -> add a job at the tail, seemingly*/
@@ -247,6 +254,7 @@ struct {
 			sleep(1); /* allow socket to drain before signalling the socket is closed */
 			close(fd);
 		}
+
 		void schedulingPolicy(int policy){
 			switch (policy)
 			{
@@ -257,7 +265,6 @@ struct {
 				break;
 			case HPIC:
 				//Highest priority to image content- dont do any other work if img is available
-
 				break;
 			case HPHC:
 				//highest priority to HTML content - dont do any other work if HTML is available
@@ -266,7 +273,6 @@ struct {
 			default:
 				break;
 			}
-
 
 		}
 		
