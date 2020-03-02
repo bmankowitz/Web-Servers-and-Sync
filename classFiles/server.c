@@ -73,7 +73,7 @@ static void *tpool_worker(void *arg)
 		pthread_mutex_lock(&(tm->work_mutex));//"A thread wishing to enter the critical region first tries to lock the associated mutex" -our sefer
 		while (tm->buf_capacity == 0) //AKA: THERE_IS_NO_WORK_TO_BE_DONE and thus we should block til there is work to be done
 			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the work_mutex, "a worker thread must wait if the buffer is empty." says the doc
-		job = tm->jobBuffer[head++];//REMOVE_JOB_FROM_BUFFER, read from head of the buffer and then increment the head to next spot in the buffer
+		job = tm->jobBuffer[tm->head++];//REMOVE_JOB_FROM_BUFFER, read from head of the buffer and then increment the head to next spot in the buffer
 		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
 		DO_THE_WORK(job); //FIXME: call web() plus ??, what other method would we call ben?...ill leave this line for you
@@ -86,17 +86,19 @@ static void *tpool_worker(void *arg)
 	}  
 	return NULL;
 }
-		
+
+/*This is, lichora, the producer, AKA where the master thread will hand of jobs to the other threads*/
 bool tpool_add_work(tpool_t * tm, job_t job){
 pthread_mutex_lock(&(tm->work_mutex));
 /*While THE_BUFFER_IS_FULL*/
 while (tm->buf_capacity == BUFSIZE) {
-	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));
-	}//FIXME, THIS SHOULD BE A LOOP OF JUST pthres_cond_wait...lichora fixed...double check ben to make sure a fixed this loop as yout intended
-	 /*ADD_JOB_TO_BUFFER -> add at the tail, seemingly*/
-	tm->jobBuffer[tail++] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
+	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));//wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
+	}
+	 /*ADD_JOB_TO_BUFFER -> add a job at the tail, seemingly*/
+	tm->jobBuffer[tm->tail++] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
+	//REMEMBER, the tail could be zero, but we will never have the head>tail cuz then it would mean we are reading data that hasn't been inserted
 	
-	// Wake the Keystone Cops!! (improve this eventually), what the hell is a keystone cop...I think this is a Kelly note not a mank the tank note   
+	// Wake the Keystone Cops!! (improve this eventually), what the hell is a keystone cop...I think this is a Kelly note not a mank-the-tank ha'arah   
 	pthread_cond_broadcast(&(tm->c_cond));    
 	pthread_mutex_unlock(&(tm->work_mutex));  
 	return true;
