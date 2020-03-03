@@ -43,8 +43,9 @@ static tpool_t the_pool; // one pool to rule them all
 
 typedef void *(worker_fn)(void *);
 
-/*ou must have a master thread that begins by creating 
- pool of worker threads, the number of which is specified on the command line.*/
+/*You must have a master thread that begins by creating 
+ pool of worker threads, the number of which is specified on the command line.
+ The 2nd and 3rd args are taken from the command line - ARI*/
 void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *worker){
 	pthread_t thread;
 	size_t i;
@@ -75,15 +76,16 @@ static void *tpool_worker(void *arg)
 		pthread_mutex_lock(&(tm->work_mutex));//"A thread wishing to enter the critical region first tries to lock the associated mutex" -our sefer
 		while (tm->buf_capacity == 0) //AKA: THERE_IS_NO_WORK_TO_BE_DONE and thus we should block til there is work to be done
 			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the work_mutex, "a worker thread must wait if the buffer is empty." says the doc
+		
 		/* Once the worker thread wakes, it performs the read on the network descriptor,
 		obtains the specified content (by reading the specified static file),
-		 and then returns the content to the client by writing to the descriptor
-		*/
+		 and then returns the content to the client by writing to the descriptor*/
+
 		//possibly make a call to getJob() depending on what the scheduling procedure is, fix line below
-		job = tm->jobBuffer[tm->head++];//REMOVE_JOB_FROM_BUFFER, read from head of the buffer and then increment the head to next spot in the buffer
-		//in the above line==>> 1. find the size of a job 2. find the tail of the buffer 3. multiply these two to see where in the buffer to begin reading
+		job = schedulingPolicy(*tm);//REMOVE_JOB_FROM_BUFFER
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
-		web(job->job_fd, 1); //FIXME: call web() and what? the "what" i think is to wait for another request
+		web(job->job_fd, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
+		
 		/*After the work has been done on the job, lock the mutex and enter the critical zone to see if the producer needs to be woken up,
 		if he needs to be woken up, that is, when the buffer is empty then call cond_signal*/
 		pthread_mutex_lock(&(tm->work_mutex));
@@ -163,7 +165,7 @@ struct {
 		}
 	}
 
-			/* this is a child web server process, so we can exit on errors */
+			/* this is a child web server process, so we can exit on errors -VAN KELLY SHLI?TA*/
 		void web(int fd, int hit) {
 			int j, file_fd, buflen;
 			long i, ret, len;
@@ -334,9 +336,12 @@ struct {
 			{
 				logger(ERROR, "system call", "listen", 0);
 			}
+			/*The basic web server that we start with is a single-threaded server 
+			that enters an infinite loop to handle sequential requests*/
 			for (hit = 1;; hit++)
 			{
 				length = sizeof(cli_addr);
+				//if the client connects to a socket, then skip this if-statement
 				if ((socketfd = accept(listenfd, (struct sockaddr *)&cli_addr, &length)) < 0)
 				{
 					logger(ERROR, "system call", "accept", 0);
