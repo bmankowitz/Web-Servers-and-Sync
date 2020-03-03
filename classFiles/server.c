@@ -32,7 +32,8 @@ typedef struct{
 
 typedef struct {
 	job_t *jobBuffer; // array of server Jobs on heap   
-	size_t buf_capacity;
+	size_t buf_capacity;//the size of the jobBuffer
+	size_t actual_capactiy;//the actual amount of items on the jobuffer
 	size_t head; // position of writer   
 	size_t tail; // position of reader   
 	pthread_mutex_t work_mutex;    
@@ -57,6 +58,7 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 	// initialize buffer to empty condition    
 	tm->head = tm->tail = 0;    
 	tm->buf_capacity = buf_size;   
+	tm->actual_capacity = 0;
 
 	//FIXED: CALLOC_ACTUAL_BUFFER_SPACE_ON_HEAP
 	tm->jobBuffer = (job_t*)calloc(tm->buf_capacity, sizeof(job_t));
@@ -83,7 +85,7 @@ static void *tpool_worker(void *arg)
 		 and then returns the content to the client by writing to the descriptor*/
 
 		//possibly make a call to getJob() depending on what the scheduling procedure is, fix line below
-		job = getJob(WHAT_THE_POLICY_IS);//REMOVE_JOB_FROM_BUFFER
+		job = getJob(WHAT_THE_POLICY_IS, tm);//REMOVE_JOB_FROM_BUFFER
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
 		web(job->job_fd, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
 		
@@ -101,7 +103,8 @@ static void *tpool_worker(void *arg)
 bool tpool_add_work(tpool_t * tm, job_t job){
 pthread_mutex_lock(&(tm->work_mutex));
 /*While THE_BUFFER_IS_FULL*/
-while (tm->buf_capacity > MAX_BUFFER_CAPACITY/*TODO: the actual bufCap*/) {
+while (tm->actual_capacity == tm->buf_capacity /*TODO: the actual bufCap*/)//this line is == because if the buffer is full we need to wait and have the consumers consume jobs from the buffer
+{
 	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));//wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
 	}
 	 /*ADD_JOB_TO_BUFFER -> add a job at the tail, seemingly*/
@@ -275,7 +278,8 @@ struct {
 			close(fd);
 		}
 
-		void getJob(int policy){
+		void getJob(int policy, tpool_t *the_pool){
+			the_pool->actual_capactiy--;
 			switch (policy)
 			{
 			case ANY:
