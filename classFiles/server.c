@@ -192,6 +192,7 @@ struct {
 				}
 			}
 			logger(LOG, "request", buffer, hit);//LOG == 44
+			//Compare the first 4 characters of buffer and see if it matches GET
 			if (strncmp(buffer, "GET ", 4) && strncmp(buffer, "get ", 4))
 			{
 				logger(FORBIDDEN, "Only simple GET operation supported", buffer, fd);
