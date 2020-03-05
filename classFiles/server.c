@@ -28,13 +28,16 @@ typedef struct{
 	int job_id;
 	int job_fd; // the socket file descriptor   
 	// what other stuff needs to be here eventually?
+	//put in the file extension here -ARI
+	bool image;
 } job_t;
 
 typedef struct {
 	job_t *jobBuffer;//standard (FIFO)
 	job_t *jobBuffer2;//this one is for images
 	size_t buf_capacity;//the size of the jobBuffer
-	size_t actual_capactiy;//the actual amount of items on the jobuffer
+	size_t actual_capacity;//the actual amount of items on the jobuffer
+	size_t actual_capacity2;
 	size_t head; // position of writer   
 	size_t tail; // position of reader   
 	size_t head2;
@@ -59,13 +62,15 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 	pthread_cond_init(&(tm->c_cond), NULL);
 
 	// initialize buffer to empty condition    
-	tm->head = tm->tail = 0;    
+	tm->head = tm->tail = 0; 
+	tm->head2 = tm->tail2 = 0;
+
 	tm->buf_capacity = buf_size;//this is the max buf size that the user passed on the command line
 	tm->actual_capacity = 0;
 
 	//FIXED: CALLOC_ACTUAL_BUFFER_SPACE_ON_HEAP
 	tm->jobBuffer = (job_t*)calloc(tm->buf_capacity, sizeof(job_t));
-	tm->jobBuffer2 = (job_t *)calloc(tm->buf_capacity, sizeof(job_t));
+	tm->jobBuffer2 = (job_t *)calloc(tm->buf_capacity, sizeof(job_t));//used for high priority scheduling policies - ARI
 	//https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
 
 	for (i = 0; i < num_threads; i++){
@@ -107,25 +112,32 @@ static void *tpool_worker(void *arg)
 bool tpool_add_work(tpool_t * tm, job_t job){
 pthread_mutex_lock(&(tm->work_mutex));
 /*While THE_BUFFER_IS_FULL*/
-while (tm->actual_capacity == tm->buf_capacity /*TODO: the actual bufCap*/)//this line is == because if the buffer is full we need to wait and have the consumers consume jobs from the buffer
-{
-	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));//wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
-	}
+while (tm->actual_capacity == tm->buf_capacity){
+	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex)); //wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
+}
 	 /*ADD_JOB_TO_BUFFER -> add a job at the tail, ONLY FOR FIFO*/
-	 switch (policy)
-			{
-			case ANY:
-				/* fall through */
-			case FIFO: //This is where I put the previous code. I think it was FIFO
-				//get oldest item in buffer and work on it:
-				tm->jobBuffer[tm->tail++] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
-				//REMEMBER, the tail could be zero, but we will never have the head>tail cuz then it would mean we are reading data that hasn't been inserted
-				break;
-			case HPIC:
-				//Highest priority to image content- dont do any other work if img is available
-				break;
+switch (policy)
+	{
+	case ANY:
+		/* fall through */
+	case FIFO: //This is where I put the previous code. I think it was FIFO
+		//get oldest item in buffer and work on it:
+		tm->jobBuffer[tm->tail++] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
+		//REMEMBER, the tail could be zero, but we will never have the head>tail cuz then it would mean we are reading data that hasn't been inserted
+		break;
+	case HPIC:
+		//Highest priority to image content- dont do any other work if img is available
+		//USE BOTH QUEUES:
+		if(tm->actual_capacity2 == 0){
+			//use the lesser priority queue to remove jobs
+		}
+		else{
+			//use the high prior
+		}
+		break;
 			case HPHC:
 				//highest priority to HTML content - dont do any other work if HTML is available
+				//USE BOTH QUEUES
 				break;
 			
 			default:
@@ -181,11 +193,11 @@ struct {
 				break;
 			}
 			/* No checks here, nothing can be done with a failure anyway */
-		if ((fd = open("nweb.log", O_CREAT | O_WRONLY | O_APPEND, 0644)) >= 0)
-		{
-			dummy = write(fd, logbuffer, strlen(logbuffer));
-			dummy = write(fd, "\n", 1);
-			(void)close(fd);
+				if ((fd = open("nweb.log", O_CREAT | O_WRONLY | O_APPEND, 0644)) >= 0)
+				{
+					dummy = write(fd, logbuffer, strlen(logbuffer));
+					dummy = write(fd, "\n", 1);
+					(void)close(fd);
 		}
 	}
 
@@ -298,32 +310,26 @@ struct {
 		close(fd);
 	}
 
-		void getJob(tpool_t *the_pool){
-			job_t result;
-			the_pool->actual_capactiy--;
-			switch (policy)
-			{
-			case ANY:
-				/* fall through */
-			case FIFO:
-				//get oldest item in buffer and work on it
-				result = the_pool->jobBuffer[the_pool->head];
-				the_pool->head++;
-				break;
-			case HPIC:
-				//Highest priority to image content- dont do any other work if img is available
-				break;
-			case HPHC:
-				//highest priority to HTML content - dont do any other work if HTML is available
-				break;
-			
-			default:
-				break;
-			}
-
+	job_t getJob(tpool_t *the_pool){
+		job_t result;
+		
+		if(the_pool->actual_capacity2 > 0){
+			result = the_pool->jobBuffer2[the_pool->head2];
+			the_pool->head2--;
+			the_pool->actual_capacity2--;
 		}
+		else{
+			result = the_pool->jobBuffer[the_pool->head];
+			the_pool->head--;
+			the_pool->actual_capacity--;
+		}
+		return result;
+	}
 		
 		int main(int argc, char **argv){
+			/*TODO: Read the command line*/
+
+			
 			int i, port, listenfd, socketfd, hit;
 			socklen_t length;
 			static struct sockaddr_in cli_addr;  /* static = initialised to zeros */
