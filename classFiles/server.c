@@ -48,8 +48,11 @@ typedef struct {
 	pthread_cond_t p_cond;
 } tpool_t;
 
-//Making global vars here - not sure if they need to be volatile , atomic, etc...
-static int portnum; 	//the port number that the web server should listen on; the basic web server already handles this argument.
+job_t getJob(tpool_t *pool);//not sure if there is a star here or an & - but this needs to be declared first
+void web(int fd, int hit);//declare the web function
+
+	//Making global vars here - not sure if they need to be volatile , atomic, etc...
+	static int portnum; //the port number that the web server should listen on; the basic web server already handles this argument.
 static int folder; 		//the folder in which your files are hosted, may often be . (dot). 
 static int threads;		//the number of worker threads that should be created within the web server. Must be a positive integer. 
 static int buffers;		//the number of request connections that can be accepted at one time. Must be a positive integer. Note that it is not an error for more or less threads to be created than buffers.
@@ -82,7 +85,8 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 	//https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
 
 	for (i = 0; i < num_threads; i++){
-		pthread_create(&thread, NULL, worker, (void *)i + 1);
+		i++;
+		pthread_create(&thread, NULL, worker, (void *)i);
 		pthread_detach(thread); // make non-joinable    
 	}
 }
@@ -91,7 +95,7 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 static void *tpool_worker(void *arg)
 {
 	tpool_t *tm = &the_pool;
-	int my_id = (int) arg;
+	unsigned int my_id = (uintptr_t)arg; //https://stackoverflow.com/questions/1845482/what-is-uintptr-t-data-type
 	while (1) {
 		job_t *job;
 		pthread_mutex_lock(&(tm->work_mutex));//"A thread wishing to enter the critical region first tries to lock the associated mutex" -our sefer
@@ -103,7 +107,7 @@ static void *tpool_worker(void *arg)
 		 and then returns the content to the client by writing to the descriptor*/
 
 		//consider inlining getJob() to avoid potential issues of multiple copies
-		job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
+		*job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
 		web(job->job_fd, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
 		
@@ -320,7 +324,7 @@ struct {
 	}
 
 	/*Pass by reference, ie get the ACTUAL pool data*/
-	job_t getJob(tpool_t &the_pool){
+	job_t getJob(tpool_t *the_pool){
 		job_t result;
 		
 		if(the_pool->actual_capacity2 > 0){
@@ -339,7 +343,7 @@ struct {
 		int main(int argc, char **argv){
 			/*TODO: Read the command line, implement arg[3], arg[4], arg[5]*/
 			/*This line below initiates the thread pool*/
-			tpool_init(the_pool, atoi(argv[3]), atoi(argv[4]), tpool_worker);
+			tpool_init(&the_pool, atoi(argv[3]), atoi(argv[4]), tpool_worker);
 			//^^ this is wrong - need to actually set the arguments.
 
 			int i, port, listenfd, socketfd, hit;
