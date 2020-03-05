@@ -85,7 +85,7 @@ static void *tpool_worker(void *arg)
 		 and then returns the content to the client by writing to the descriptor*/
 
 		//possibly make a call to getJob() depending on what the scheduling procedure is, fix line below
-		job = getJob(WHAT_THE_POLICY_IS, tm);//REMOVE_JOB_FROM_BUFFER
+		job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
 		web(job->job_fd, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
 		
@@ -185,100 +185,116 @@ struct {
 		}
 	}
 
-			/* this is a child web server process, so we can exit on errors -VAN KELLY SHLI?TA*/
-		void web(int fd, int hit) {
-			int j, file_fd, buflen;
-			long i, ret, len;
-			char *fstr;
-			static char buffer[BUFSIZE + 1]; /* static so zero filled */
+	/* this is a child web server process, so we can exit on errors -VAN KELLY SHLI?TA*/
+	void web(int fd, int hit) {
+		int j, file_fd, buflen;
+		long i, ret, len;
+		char *fstr;
+		static char buffer[BUFSIZE + 1]; /* static so zero filled */
 
-			ret = read(fd, buffer, BUFSIZE); /* read Web request in one go */
-			if (ret == 0 || ret == -1)
-			{ /* read failure stop now */
-				logger(FORBIDDEN, "failed to read browser request", "", fd);
-				goto endRequest;
-			}
-			if (ret > 0 && ret < BUFSIZE)
-			{					 /* return code is valid chars */
-				buffer[ret] = 0; /* terminate the buffer */
-			}
-			else
-			{
-				buffer[0] = 0;
-			}
-			for (i = 0; i < ret; i++)
-			{ /* remove CF and LF characters */
-				if (buffer[i] == '\r' || buffer[i] == '\n')
-				{
-					buffer[i] = '*';
-				}
-			}
-			logger(LOG, "request", buffer, hit);//LOG == 44
-			//Compare the first 4 characters of buffer and see if it matches GET
-			if (strncmp(buffer, "GET ", 4) && strncmp(buffer, "get ", 4))
-			{
-				logger(FORBIDDEN, "Only simple GET operation supported", buffer, fd);
-				goto endRequest;
-			}
-			for (i = 4; i < BUFSIZE; i++)
-			{ /* null terminate after the second space to ignore extra stuff */
-				if (buffer[i] == ' ')
-				{ /* string is "GET URL " +lots of other stuff */
-					buffer[i] = 0;
-					break;
-				}
-			}
-			for (j = 0; j < i - 1; j++)
-			{ /* check for illegal parent directory use .. */
-				if (buffer[j] == '.' && buffer[j + 1] == '.')
-				{
-					logger(FORBIDDEN, "Parent directory (..) path names not supported", buffer, fd);
-					goto endRequest;
-				}
-			}
-			if (!strncmp(&buffer[0], "GET /\0", 6) || !strncmp(&buffer[0], "get /\0", 6))
-			{ /* convert no filename to index file */
-				(void)strcpy(buffer, "GET /index.html");
-			}
-				/* work out the file type and check we support it */
-			buflen = strlen(buffer);
-			fstr = (char *)0;
-			for (i = 0; extensions[i].ext != 0; i++)
-			{
-				len = strlen(extensions[i].ext);
-				if (!strncmp(&buffer[buflen - len], extensions[i].ext, len))
-				{
-					fstr = extensions[i].filetype;
-					break;
-				}
-			}
-			if (fstr == 0)
-			{
-				logger(FORBIDDEN, "file extension type not supported", buffer, fd);
-			}
-			if ((file_fd = open(&buffer[5], O_RDONLY)) == -1)
-			{ /* open the file for reading */
-				logger(NOTFOUND, "failed to open file", &buffer[5], fd);
-				goto endRequest;
-			}
-			logger(LOG, "SEND", &buffer[5], hit);
-			len = (long)lseek(file_fd, (off_t)0, SEEK_END); /* lseek to the file end to find the length */
-			(void)lseek(file_fd, (off_t)0, SEEK_SET);		/* lseek back to the file start ready for reading */
-			/* print out the response line, stock headers, and a blank line at the end. */
-			(void)sprintf(buffer, HDRS_OK, VERSION, len, fstr);
-			logger(LOG, "Header", buffer, hit);
-			dummy = write(fd, buffer, strlen(buffer));
-				/* send file in 8KB block - last block may be smaller */
-			while ((ret = read(file_fd, buffer, BUFSIZE)) > 0)
-			{
-				dummy = write(fd, buffer, ret);
-			}
-		endRequest:
-			sleep(1); /* allow socket to drain before signalling the socket is closed */
-			close(fd);
+		/* read Web request in one go */
+		ret = read(fd, buffer, BUFSIZE);//Read up to BUFSIZE bytes from the file descriptor fd into the buffer array
+
+		/* read failure stop now */
+		if (ret == 0 || ret == -1){
+			logger(FORBIDDEN, "failed to read browser request", "", fd);
+			goto endRequest;
 		}
 
-		void getJob(int policy, tpool_t *the_pool){
+		/* return code is valid chars */
+		if (ret > 0 && ret < BUFSIZE){
+			buffer[ret] = 0; /* terminate the buffer */
+		}
+		else{
+			buffer[0] = 0;
+		}
+
+		/* remove CF and LF characters */
+		for (i = 0; i < ret; i++){
+			if (buffer[i] == '\r' || buffer[i] == '\n')
+			{
+				buffer[i] = '*';
+			}
+		}
+	
+		/*1st arg ==> type of message
+		  2nd, 3rd arg ==> strings
+		  4th arg ==> socket file descriptor
+		*/
+		logger(LOG, "request", buffer, hit);//LOG == 44
+
+		/*Compare the first 4 characters of buffer and see if it matches GET*/
+		if (strncmp(buffer, "GET ", 4) && strncmp(buffer, "get ", 4)){
+			logger(FORBIDDEN, "Only simple GET operation supported", buffer, fd);
+			goto endRequest;
+		}
+
+		/* null terminate after the second space to ignore extra stuff */
+		for (i = 4; i < BUFSIZE; i++){ 
+			if (buffer[i] == ' ')
+			{ /* string is "GET URL " +lots of other stuff */
+				buffer[i] = 0;
+				break;
+			}
+		}
+
+		/* check for illegal parent directory use .. */
+		for (j = 0; j < i - 1; j++){ 
+			if (buffer[j] == '.' && buffer[j + 1] == '.')
+			{
+				logger(FORBIDDEN, "Parent directory (..) path names not supported", buffer, fd);
+				goto endRequest;
+			}
+		}
+
+		/* convert no filename to index file */
+		if (!strncmp(&buffer[0], "GET /\0", 6) || !strncmp(&buffer[0], "get /\0", 6)){
+			(void)strcpy(buffer, "GET /index.html");
+		}
+		
+		/* work out the file type and check we support it */
+		buflen = strlen(buffer);
+		fstr = (char *)0;
+		for (i = 0; extensions[i].ext != 0; i++){
+			len = strlen(extensions[i].ext);
+			if (!strncmp(&buffer[buflen - len], extensions[i].ext, len))
+			{
+				fstr = extensions[i].filetype;
+				break;
+			}
+		}
+
+		if (fstr == 0){
+			logger(FORBIDDEN, "file extension type not supported", buffer, fd);
+		}
+
+		if ((file_fd = open(&buffer[5], O_RDONLY)) == -1){ /* open the file for reading */
+			logger(NOTFOUND, "failed to open file", &buffer[5], fd);
+			goto endRequest;
+		}
+
+		logger(LOG, "SEND", &buffer[5], hit);
+
+		len = (long)lseek(file_fd, (off_t)0, SEEK_END); /* lseek to the file end to find the length */
+		
+		(void)lseek(file_fd, (off_t)0, SEEK_SET);		/* lseek back to the file start ready for reading */
+		
+		/* print out the response line, stock headers, and a blank line at the end. */
+		(void)sprintf(buffer, HDRS_OK, VERSION, len, fstr);
+		logger(LOG, "Header", buffer, hit);
+		
+		dummy = write(fd, buffer, strlen(buffer));
+		/* send file in 8KB block - last block may be smaller */
+		while ((ret = read(file_fd, buffer, BUFSIZE)) > 0){
+			dummy = write(fd, buffer, ret);
+		}
+		
+		endRequest:
+		sleep(1); /* allow socket to drain before signalling the socket is closed */
+		close(fd);
+	}
+
+		void getJob(tpool_t *the_pool){
 			job_t result;
 			the_pool->actual_capactiy--;
 			switch (policy)
