@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdbool.h>
 #define VERSION 25
 #define BUFSIZE 8096
 #define ERROR      42
@@ -46,6 +47,13 @@ typedef struct {
 	pthread_cond_t c_cond; // P/C condition variables    
 	pthread_cond_t p_cond;
 } tpool_t;
+
+//Making global vars here - not sure if they need to be volatile , atomic, etc...
+static int portnum; 	//the port number that the web server should listen on; the basic web server already handles this argument.
+static int folder; 		//the folder in which your files are hosted, may often be . (dot). 
+static int threads;		//the number of worker threads that should be created within the web server. Must be a positive integer. 
+static int buffers;		//the number of request connections that can be accepted at one time. Must be a positive integer. Note that it is not an error for more or less threads to be created than buffers.
+static int schedalg;	//the scheduling algorithm to be performed. Must be one of ANY, FIFO, HPIC, or HPHC. 
 
 static tpool_t the_pool; // one pool to rule them all
 
@@ -93,7 +101,7 @@ static void *tpool_worker(void *arg)
 		obtains the specified content (by reading the specified static file),
 		 and then returns the content to the client by writing to the descriptor*/
 
-		//possibly make a call to getJob() depending on what the scheduling procedure is, fix line below
+		//consider inlining getJob() to avoid potential issues of multiple copies
 		job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
 		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
 		web(job->job_fd, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
@@ -116,7 +124,7 @@ while (tm->actual_capacity == tm->buf_capacity){
 	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex)); //wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
 }
 	 /*ADD_JOB_TO_BUFFER -> add a job at the tail, ONLY FOR FIFO*/
-switch (policy)
+switch (schedalg)
 	{
 	case ANY:
 		/* fall through */
@@ -331,6 +339,7 @@ struct {
 			/*TODO: Read the command line, implement arg[3], arg[4], arg[5]*/
 			/*This line below initiates the thread pool*/
 			tpool_init(the_pool, atoi(argv[3]), atoi(argv[4]), tpool_worker);
+			//^^ this is wrong - need to actually set the arguments.
 
 			int i, port, listenfd, socketfd, hit;
 			socklen_t length;
@@ -348,7 +357,7 @@ struct {
 								 argv[0], VERSION);
 				for (i = 0; extensions[i].ext != 0; i++)
 					(void)printf(" %s", extensions[i].ext);
-					(void)printf("\n\tNot Supported: URLs including \"..\", Java, Javascript, CGI\n"
+				(void)printf("\n\tNot Supported: URLs including \"..\", Java, Javascript, CGI\n"
 							 "\tNot Supported: directories / /etc /bin /lib /tmp /usr /dev /sbin \n"
 							 "\tNo warranty given or implied\n\tNigel Griffiths nag@uk.ibm.com\n");
 			exit(0);
