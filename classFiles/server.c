@@ -74,7 +74,7 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 	tm->head2 = tm->tail2 = 0;
 
 	tm->buf_capacity = buf_size;//this is the max buf size that the user passed on the command line
-	tm->actual_capacity = 0;
+	tm->actual_capacity = 0;//nothing in the thread pool originally
 
 	//FIXED: CALLOC_ACTUAL_BUFFER_SPACE_ON_HEAP
 	tm->jobBuffer = (job_t*)calloc(tm->buf_capacity, sizeof(job_t));
@@ -86,6 +86,7 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 		pthread_detach(thread); // make non-joinable    
 	}
 }
+
 /*This is the consumer. Each thread is consuming a 'job' and is performing that job by DO_THE_WORK*/
 static void *tpool_worker(void *arg)
 {
@@ -118,39 +119,39 @@ static void *tpool_worker(void *arg)
 
 /*This is, lich'ora, the producer, AKA where the master thread will hand off jobs to the other threads*/
 bool tpool_add_work(tpool_t * tm, job_t job){
-pthread_mutex_lock(&(tm->work_mutex));
-/*While THE_BUFFER_IS_FULL*/
-while (tm->actual_capacity == tm->buf_capacity){
-	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex)); //wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
-}
-	 /*ADD_JOB_TO_BUFFER -> add a job at the tail, ONLY FOR FIFO*/
-switch (schedalg)
-	{
-	case ANY:
-		/* fall through */
-	case FIFO: //This is where I put the previous code. I think it was FIFO
-		//get oldest item in buffer and work on it:
-		tm->jobBuffer[tm->tail++] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
-		//REMEMBER, the tail could be zero, but we will never have the head>tail cuz then it would mean we are reading data that hasn't been inserted
-		break;
-	case HPIC:
-		//Highest priority to image content- dont do any other work if img is available
-		//USE BOTH QUEUES:
-		if(tm->actual_capacity2 == 0){
+	pthread_mutex_lock(&(tm->work_mutex));
+	/*While THE_BUFFER_IS_FULL*/
+	while (tm->actual_capacity == tm->buf_capacity){
+		pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex)); //wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
+	}
+	/*ADD_JOB_TO_BUFFER -> add a job at the tail, ONLY FOR FIFO*/
+	switch (schedalg)
+		{
+		case ANY:
+			/* fall through */
+		case FIFO: //This is where I put the previous code. I think it was FIFO
+			//get oldest item in buffer and work on it:
+			tm->jobBuffer[tm->tail++] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
+			//REMEMBER, the tail could be zero, but we will never have the head>tail cuz then it would mean we are reading data that hasn't been inserted
+			break;
+		case HPIC:
+			//Highest priority to image content- dont do any other work if img is available
+			//USE BOTH QUEUES:
+			if(tm->actual_capacity2 == 0){
 			//use the lesser priority queue to remove jobs
-		}
-		else{
-			//use the high prior
-		}
-		break;
-			case HPHC:
-				//highest priority to HTML content - dont do any other work if HTML is available
-				//USE BOTH QUEUES
-				break;
-			
-			default:
-				break;
 			}
+			else{
+			//use the high prior
+			}
+			break;
+		case HPHC:
+			//highest priority to HTML content - dont do any other work if HTML is available
+			//USE BOTH QUEUES
+			break;
+			
+		default:
+			break;
+		}
 	// Wake the Keystone Cops!! (improve this eventually), what the hell is a keystone cop...I think this is a Kelly note not a mank-the-tank ha'arah   
 	pthread_cond_broadcast(&(tm->c_cond));    
 	pthread_mutex_unlock(&(tm->work_mutex));  
