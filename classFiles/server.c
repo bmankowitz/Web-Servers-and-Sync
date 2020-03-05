@@ -328,8 +328,9 @@ struct {
 	}
 		
 		int main(int argc, char **argv){
-			/*TODO: Read the command line*/
-
+			/*TODO: Read the command line, implement arg[3], arg[4], arg[5]*/
+			/*This line below initiates the thread pool*/
+			tpool_init(the_pool, atoi(argv[3]), atoi(argv[4]), tpool_worker);
 
 			int i, port, listenfd, socketfd, hit;
 			socklen_t length;
@@ -365,13 +366,13 @@ struct {
 				(void)printf("ERROR: Can't Change to directory %s\n", argv[2]);
 				exit(4);
 			}
-				logger(LOG, "nweb starting", argv[1], getpid());
+			logger(LOG, "nweb starting", argv[1], getpid());
 			/* setup the network socket */
 			if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 			{
 				logger(ERROR, "system call", "socket", 0);
 			}
-			port = atoi(argv[1]);
+			port = atoi(argv[1]);//this is my ra'aya
 			if (port < 1025 || port > 65000)
 			{
 				logger(ERROR, "Invalid port number (try 1025->65000)", argv[1], 0);
