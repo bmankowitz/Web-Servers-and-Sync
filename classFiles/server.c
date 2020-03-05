@@ -310,7 +310,8 @@ struct {
 		close(fd);
 	}
 
-	job_t getJob(tpool_t *the_pool){
+	/*Pass by reference, ie get the ACTUAL pool data*/
+	job_t getJob(tpool_t &the_pool){
 		job_t result;
 		
 		if(the_pool->actual_capacity2 > 0){
@@ -329,7 +330,7 @@ struct {
 		int main(int argc, char **argv){
 			/*TODO: Read the command line*/
 
-			
+
 			int i, port, listenfd, socketfd, hit;
 			socklen_t length;
 			static struct sockaddr_in cli_addr;  /* static = initialised to zeros */
