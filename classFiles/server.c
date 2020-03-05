@@ -107,7 +107,7 @@ while (tm->actual_capacity == tm->buf_capacity /*TODO: the actual bufCap*/)//thi
 {
 	pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex));//wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
 	}
-	 /*ADD_JOB_TO_BUFFER -> add a job at the tail, seemingly*/
+	 /*ADD_JOB_TO_BUFFER -> add a job at the tail, ONLY FOR FIFO*/
 	 switch (policy)
 			{
 			case ANY:
@@ -279,6 +279,7 @@ struct {
 		}
 
 		void getJob(int policy, tpool_t *the_pool){
+			job_t result;
 			the_pool->actual_capactiy--;
 			switch (policy)
 			{
@@ -286,6 +287,8 @@ struct {
 				/* fall through */
 			case FIFO:
 				//get oldest item in buffer and work on it
+				result = the_pool->jobBuffer[the_pool->head];
+				the_pool->head++;
 				break;
 			case HPIC:
 				//Highest priority to image content- dont do any other work if img is available
