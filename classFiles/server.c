@@ -341,7 +341,12 @@ struct {
 	}
 		
 		int main(int argc, char **argv){
-			/*TODO: Read the command line, implement arg[3], arg[4], arg[5]*/
+			/*TODO: Read the command line, implement 
+				argv[1] ==> port number
+				argv[2] ==> folder ... what is this exactly?
+				argv[3] ==> worker thread num
+				argv[4] ==> how much space in buffer
+				argv[5] ==> scheduling policy*/
 			/*This line below initiates the thread pool*/
 			tpool_init(&the_pool, atoi(argv[3]), atoi(argv[4]), tpool_worker);
 			//^^ this is wrong - need to actually set the arguments.
