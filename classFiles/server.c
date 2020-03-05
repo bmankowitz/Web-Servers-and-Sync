@@ -10,7 +10,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+//our own imports:
 #include <stdbool.h>
+#include <stdarg.h>
+#include <err.h>
 #define VERSION 25
 #define BUFSIZE 8096
 #define ERROR      42
@@ -52,10 +55,6 @@ job_t getJob(tpool_t *pool);//not sure if there is a star here or an & - but thi
 void web(int fd, int hit);//declare the web function
 
 	//Making global vars here - not sure if they need to be volatile , atomic, etc...
-	static int portnum; //the port number that the web server should listen on; the basic web server already handles this argument.
-static int folder; 		//the folder in which your files are hosted, may often be . (dot). 
-static int threads;		//the number of worker threads that should be created within the web server. Must be a positive integer. 
-static int buffers;		//the number of request connections that can be accepted at one time. Must be a positive integer. Note that it is not an error for more or less threads to be created than buffers.
 static int schedalg;	//the scheduling algorithm to be performed. Must be one of ANY, FIFO, HPIC, or HPHC. 
 
 static tpool_t the_pool; // one pool to rule them all
@@ -349,7 +348,16 @@ struct {
 				argv[5] ==> scheduling policy*/
 			/*This line below initiates the thread pool*/
 			tpool_init(&the_pool, atoi(argv[3]), atoi(argv[4]), tpool_worker);
-			//^^ this is wrong - need to actually set the arguments.
+			
+			//Set the schedalg:
+			if(strcmp(argv[5], "ANY")==0) schedalg = ANY;
+			else if(strcmp(argv[5], "FIFO")==0) schedalg = FIFO;
+			else if(strcmp(argv[5], "HPIC")==0) schedalg = HPIC;
+			else if(strcmp(argv[5], "HPHC")==0) schedalg = HPHC;
+			else{
+				//There was an error!
+				warn("bad scheduling algorithm");
+			}
 
 			int i, port, listenfd, socketfd, hit;
 			socklen_t length;
