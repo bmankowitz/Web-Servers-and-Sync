@@ -31,11 +31,14 @@ typedef struct{
 } job_t;
 
 typedef struct {
-	job_t *jobBuffer; // array of server Jobs on heap   
+	job_t *jobBuffer;//standard (FIFO)
+	job_t *jobBuffer2;//this one is for images
 	size_t buf_capacity;//the size of the jobBuffer
 	size_t actual_capactiy;//the actual amount of items on the jobuffer
 	size_t head; // position of writer   
 	size_t tail; // position of reader   
+	size_t head2;
+	size_t tail2;
 	pthread_mutex_t work_mutex;    
 	pthread_cond_t c_cond; // P/C condition variables    
 	pthread_cond_t p_cond;
@@ -57,11 +60,12 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 
 	// initialize buffer to empty condition    
 	tm->head = tm->tail = 0;    
-	tm->buf_capacity = buf_size;   
+	tm->buf_capacity = buf_size;//this is the max buf size that the user passed on the command line
 	tm->actual_capacity = 0;
 
 	//FIXED: CALLOC_ACTUAL_BUFFER_SPACE_ON_HEAP
 	tm->jobBuffer = (job_t*)calloc(tm->buf_capacity, sizeof(job_t));
+	tm->jobBuffer2 = (job_t *)calloc(tm->buf_capacity, sizeof(job_t));
 	//https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
 
 	for (i = 0; i < num_threads; i++){
@@ -288,7 +292,7 @@ struct {
 		while ((ret = read(file_fd, buffer, BUFSIZE)) > 0){
 			dummy = write(fd, buffer, ret);
 		}
-		
+
 		endRequest:
 		sleep(1); /* allow socket to drain before signalling the socket is closed */
 		close(fd);
