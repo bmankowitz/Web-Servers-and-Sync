@@ -96,7 +96,7 @@ static void *tpool_worker(void *arg)
 	tpool_t *tm = &the_pool;
 	unsigned int my_id = (uintptr_t)arg; //https://stackoverflow.com/questions/1845482/what-is-uintptr-t-data-type
 	while (1) {
-		job_t *job;
+		job_t *job = malloc(sizeof(job_t));//compiler compained the job was uninitialized so I stored space using malloc
 		pthread_mutex_lock(&(tm->work_mutex));//"A thread wishing to enter the critical region first tries to lock the associated mutex" -our sefer
 		while (tm->buf_capacity == 0) //AKA: THERE_IS_NO_WORK_TO_BE_DONE and thus we should block til there is work to be done
 			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the work_mutex, "a worker thread must wait if the buffer is empty." says the doc
