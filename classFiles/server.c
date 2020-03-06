@@ -22,7 +22,6 @@
 #define NOTFOUND  404
 
 //Scheduling Definitions:
-//TODO: make this a cmd arg?
 #define ANY 0
 #define FIFO 1
 #define HPIC 2
@@ -124,7 +123,7 @@ static void *tpool_worker(void *arg)
 bool tpool_add_work(tpool_t * tm, job_t job){
 	pthread_mutex_lock(&(tm->work_mutex));
 	/*While THE_BUFFER_IS_FULL*/
-	while (tm->actual_capacity == tm->buf_capacity){
+	while (tm->actual_capacity + tm->actual_capacity2 == tm->buf_capacity){ //added in actual_capacity2
 		pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex)); //wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
 	}
 	/*ADD_JOB_TO_BUFFER -> add a job at the tail, ONLY FOR FIFO*/
@@ -140,16 +139,26 @@ bool tpool_add_work(tpool_t * tm, job_t job){
 		case HPIC:
 			//Highest priority to image content- dont do any other work if img is available
 			//USE BOTH QUEUES:
-			if(tm->actual_capacity2 == 0){
-			//use the lesser priority queue to remove jobs
+			if(job.image == 1){//I have literally no idea why, but it'll complaint if you use '->' instead of '.'
+				//add to HP queue:
+				tm->jobBuffer2[tm->tail2++] = job;
 			}
 			else{
-			//use the high prior
+				//add to LP queue:
+				tm->jobBuffer[tm->tail++] = job;
 			}
 			break;
 		case HPHC:
 			//highest priority to HTML content - dont do any other work if HTML is available
-			//USE BOTH QUEUES
+			//USE BOTH QUEUES:
+			if(job.image == 0){//I have literally no idea why, but it'll complaint if you use '->' instead of '.'
+				//add to HP queue:
+				tm->jobBuffer2[tm->tail2++] = job;
+			}
+			else{
+				//add to LP queue:
+				tm->jobBuffer[tm->tail++] = job;
+			}
 			break;
 			
 		default:
@@ -326,15 +335,19 @@ struct {
 	job_t getJob(tpool_t *the_pool){
 		job_t result;
 		
-		if(the_pool->actual_capacity2 > 0){
+		if(the_pool->actual_capacity2 > 0){//check for HP jobs
 			result = the_pool->jobBuffer2[the_pool->head2];
 			the_pool->head2--;
 			the_pool->actual_capacity2--;
 		}
-		else{
+		else if(the_pool->actual_capacity > 0){
 			result = the_pool->jobBuffer[the_pool->head];
 			the_pool->head--;
 			the_pool->actual_capacity--;
+		}
+		else{
+			//there are no jobs in any buffer
+			//TODO: what should we do
 		}
 		return result;
 	}
