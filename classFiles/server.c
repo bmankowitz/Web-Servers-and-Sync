@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <err.h>
+#include <stdint.h>
 #define VERSION 25
 #define BUFSIZE 8096
 #define ERROR      42
