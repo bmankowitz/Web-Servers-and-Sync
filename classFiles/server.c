@@ -137,6 +137,7 @@ bool tpool_add_work(tpool_t * tm, job_t job){
 			//get oldest item in buffer and work on it:
 			tm->jobBuffer[tm->tail++] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
 			//REMEMBER, the tail could be zero, but we will never have the head>tail cuz then it would mean we are reading data that hasn't been inserted
+			//tm->tail++ % tm->buf_capacity;//tail should wrap around to the front when it reaches the end of the buffer
 			break;
 		case HPIC:
 			//Highest priority to image content- dont do any other work if img is available
@@ -339,12 +340,12 @@ struct {
 		
 		if(the_pool->actual_capacity2 > 0){//check for HP jobs
 			result = the_pool->jobBuffer2[the_pool->head2];
-			the_pool->head2--;
+			the_pool->head2++ % the_pool->buf_capacity;//move the head up the queue and wrap around when reaching the end of the queue
 			the_pool->actual_capacity2--;
 		}
 		else if(the_pool->actual_capacity > 0){
 			result = the_pool->jobBuffer[the_pool->head];
-			the_pool->head--;
+			the_pool->head++ % the_pool->buf_capacity;
 			the_pool->actual_capacity--;
 		}
 		else{
