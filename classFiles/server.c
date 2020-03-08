@@ -128,6 +128,7 @@ bool tpool_add_work(tpool_t * tm, job_t job){
 		pthread_cond_wait(&(tm->p_cond), &(tm->work_mutex)); //wait for a signal that the producer should wake up (see the pthread_cond_signal in the previous method)
 	}
 	/*ADD_JOB_TO_BUFFER -> add a job at the tail, ONLY FOR FIFO*/
+	/*Use 2 queues, the 2nd queue is used when priority matters*/
 	switch (schedalg)
 		{
 		case ANY:
@@ -142,11 +143,11 @@ bool tpool_add_work(tpool_t * tm, job_t job){
 			//USE BOTH QUEUES:
 			if(job.image == 1){//I have literally no idea why, but it'll complaint if you use '->' instead of '.'
 				//add to HP queue:
-				tm->jobBuffer2[tm->tail2++] = job;
+				tm->jobBuffer2[tm->tail2++] = job;//add jobs to the tail
 			}
 			else{
 				//add to LP queue:
-				tm->jobBuffer[tm->tail++] = job;
+				tm->jobBuffer[tm->tail++] = job;//add lower-priority jobs to tail of the lower priority queue
 			}
 			break;
 		case HPHC:
