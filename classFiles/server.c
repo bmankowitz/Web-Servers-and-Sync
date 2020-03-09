@@ -340,12 +340,12 @@ struct {
 		
 		if(the_pool->actual_capacity2 > 0){//check for HP jobs
 			result = the_pool->jobBuffer2[the_pool->head2];
-			the_pool->head2++ % the_pool->buf_capacity;//move the head up the queue and wrap around when reaching the end of the queue
+			the_pool->head2++;
 			the_pool->actual_capacity2--;
 		}
 		else if(the_pool->actual_capacity > 0){
 			result = the_pool->jobBuffer[the_pool->head];
-			the_pool->head++ % the_pool->buf_capacity;
+			the_pool->head++;
 			the_pool->actual_capacity--;
 		}
 		else{
@@ -364,6 +364,7 @@ struct {
 				argv[5] ==> scheduling policy*/
 			/*This line below initiates the thread pool*/
 			tpool_init(&the_pool, atoi(argv[3]), atoi(argv[4]), tpool_worker);
+			//tpool_add_work(the_pool, )
 			
 			//Set the schedalg:
 			if(strcmp(argv[5], "ANY")==0) schedalg = ANY;
