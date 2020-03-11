@@ -366,7 +366,6 @@ struct {
 				argv[5] ==> scheduling policy*/
 			/*This line below initiates the thread pool*/
 			tpool_init(&the_pool, atoi(argv[3]), atoi(argv[4]), tpool_worker);
-			//tpool_add_work(the_pool, )
 			
 			//Set the schedalg:
 			if(strcmp(argv[5], "ANY")==0) schedalg = ANY;
@@ -375,7 +374,7 @@ struct {
 			else if(strcmp(argv[5], "HPHC")==0) schedalg = HPHC;
 			else{
 				//There was an error!
-				warn("bad scheduling algorithm");
+				warn("bad scheduling algorithm");//This is a Ben special
 			}
 
 			int i, port, listenfd, socketfd, hit;
@@ -399,6 +398,7 @@ struct {
 							 "\tNo warranty given or implied\n\tNigel Griffiths nag@uk.ibm.com\n");
 			exit(0);
 			}
+			/*It has to be one of the following args*/
 			if (!strncmp(argv[2], "/", 2) || !strncmp(argv[2], "/etc", 5) ||
 				!strncmp(argv[2], "/bin", 5) || !strncmp(argv[2], "/lib", 5) ||
 				!strncmp(argv[2], "/tmp", 5) || !strncmp(argv[2], "/usr", 5) ||
@@ -414,34 +414,31 @@ struct {
 			}
 			logger(LOG, "nweb starting", argv[1], getpid());
 			/* setup the network socket */
-			if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-			{
+			if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 				logger(ERROR, "system call", "socket", 0);
 			}
 			port = atoi(argv[1]);//this is my ra'aya
-			if (port < 1025 || port > 65000)
-			{
+			if (port < 1025 || port > 65000){
 				logger(ERROR, "Invalid port number (try 1025->65000)", argv[1], 0);
 			}
+			//https://www.cs.rpi.edu/~moorthy/Courses/os98/Pgms/socket.html
 			serv_addr.sin_family = AF_INET;
-			serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+			serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);//this field contains the IP address of the host
 			serv_addr.sin_port = htons(port);
-			if (bind(listenfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-			{
+
+			if (bind(listenfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
 				logger(ERROR, "system call", "bind", 0);
 			}
-			if (listen(listenfd, 64) < 0)
-			{
+			if (listen(listenfd, 64) < 0){
 				logger(ERROR, "system call", "listen", 0);
 			}
+
 			/*The basic web server that we start with is a single-threaded server 
 			that enters an infinite loop to handle sequential requests*/
-			for (hit = 1;; hit++)
-			{
+			for (hit = 1;; hit++){
 				length = sizeof(cli_addr);
 				//if the client connects to a socket, then skip this if-statement
-				if ((socketfd = accept(listenfd, (struct sockaddr *)&cli_addr, &length)) < 0)
-				{
+				if ((socketfd = accept(listenfd, (struct sockaddr *)&cli_addr, &length)) < 0){
 					logger(ERROR, "system call", "accept", 0);
 				}
 				web(socketfd, hit); /* this is where the action happens */
