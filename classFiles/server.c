@@ -245,14 +245,14 @@ struct {
 		if (ret > 0 && ret < BUFSIZE){
 			buffer[ret] = 0; /* terminate the buffer */
 		}
+		//this is a Kelly special, Ben's kashia
 		else{
 			buffer[0] = 0;
 		}
 
 		/* remove CF and LF characters */
 		for (i = 0; i < ret; i++){
-			if (buffer[i] == '\r' || buffer[i] == '\n')
-			{
+			if (buffer[i] == '\r' || buffer[i] == '\n'){
 				buffer[i] = '*';
 			}
 		}
@@ -264,6 +264,7 @@ struct {
 		logger(LOG, "request", buffer, hit);//LOG == 44
 
 		/*Compare the first 4 characters of buffer and see if it matches GET*/
+		//YOU TAKA WANT A SPACE
 		if (strncmp(buffer, "GET ", 4) && strncmp(buffer, "get ", 4)){
 			logger(FORBIDDEN, "Only simple GET operation supported", buffer, fd);
 			goto endRequest;
@@ -296,7 +297,8 @@ struct {
 		buflen = strlen(buffer);
 		fstr = (char *)0;
 		for (i = 0; extensions[i].ext != 0; i++){
-			len = strlen(extensions[i].ext);
+			len = strlen(extensions[i].ext);//jpeg == 4
+			//this is checking the last len digits of the request, and comparing it to our list
 			if (!strncmp(&buffer[buflen - len], extensions[i].ext, len))
 			{
 				fstr = extensions[i].filetype;
