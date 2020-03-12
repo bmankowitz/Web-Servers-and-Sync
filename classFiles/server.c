@@ -446,10 +446,31 @@ struct {
 				if ((socketfd = accept(listenfd, (struct sockaddr *)&cli_addr, &length)) < 0){
 					logger(ERROR, "system call", "accept", 0);
 				}
-				job_t jobToAdd = malloc(sizeof(job_t));
+
+				job_t * jobToAdd = malloc(sizeof(job_t));
 				jobToAdd->job_fd = socketfd;
 				jobToAdd->job_id = hit;
-				//jobToAdd->image = ?;//FIXME: how do we tell if this is an image
-				tpool_add_work(&the_pool, jobToAdd) /* this is where the action happens */
+				
+				// see https://stackoverflow.com/questions/11981474/pread-and-lseek-not-working-on-socket-file-descriptor
+				//GET IF  REQUEST IS IMAGE WITHOUT CHANGING READ POSITION
+				int flags = MSG_DONTWAIT | MSG_PEEK; //MSG_PEEK ==Peeks at an incoming message.The data is treated as unread and the next recv() or similar function shall still return this data.char * buf;
+				char* buf;
+				buf = (char*)malloc(BUFSIZE);
+				int buflen;
+				recv(socketfd, buf, BUFSIZE, flags);
+				buf[BUFSIZE] = '\0';
+				buflen = strlen(buf);
+				int len;
+				for (i = 0; extensions[i].ext != 0; i++){
+					len = strlen(extensions[i].ext);//jpeg == 4
+					//this is checking the last len digits of the request, and comparing it to our list
+					if (!strncmp(&buf[buflen - len], extensions[i].ext, len))
+					{
+						if (!strncmp(extensions[i].ext, "htm", len) || !strncmp(extensions[i].ext, "html", len)){
+							jobToAdd->image = false;//YOU ARE RIGHT!!!
+						}
+					}
+				}
+				tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
 			}
 		}
