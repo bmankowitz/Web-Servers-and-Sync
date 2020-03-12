@@ -107,7 +107,8 @@ static void *tpool_worker(void *arg)
 
 		//consider inlining getJob() to avoid potential issues of multiple copies
 		*job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
-		pthread_mutex_unlock(&(tm->work_mutex));//release the mutex
+		pthread_mutex_unlock(&(tm->work_mutex));//release the 
+		//TODO: does web() need to be inside the locked mutex?
 		web(job->job_fd, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
 		
 		/*After the work has been done on the job, lock the mutex and enter the critical zone to see if the producer needs to be woken up,
@@ -354,6 +355,10 @@ struct {
 			//there are no jobs in any buffer
 			//TODO: what should we do
 		}
+		//TODO: ANALYZE TO SEE IF WE SHOULD CALL WEB BEFORE UNLOCKING THE MUTEX OR AFTER
+		/*if(result != NULL){
+			web(result->job_fd,result->job_id);
+		}*/
 		return result;
 	}
 		
@@ -441,6 +446,10 @@ struct {
 				if ((socketfd = accept(listenfd, (struct sockaddr *)&cli_addr, &length)) < 0){
 					logger(ERROR, "system call", "accept", 0);
 				}
-				web(socketfd, hit); /* this is where the action happens */
+				job_t jobToAdd = malloc(sizeof(job_t));
+				jobToAdd->job_fd = socketfd;
+				jobToAdd->job_id = hit;
+				//jobToAdd->image = ?;//FIXME: how do we tell if this is an image
+				tpool_add_work(&the_pool, jobToAdd) /* this is where the action happens */
 			}
 		}
