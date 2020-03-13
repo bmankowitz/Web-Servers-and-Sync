@@ -223,7 +223,7 @@ struct {
 					dummy = write(fd, logbuffer, strlen(logbuffer));
 					dummy = write(fd, "\n", 1);
 					(void)close(fd);
-		}
+				}
 	}
 
 	/* this is a child web server process, so we can exit on errors -VAN KELLY SHLI?TA*/
