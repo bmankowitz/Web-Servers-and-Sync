@@ -409,8 +409,8 @@ struct {
 			socklen_t length;
 			static struct sockaddr_in cli_addr;  /* static = initialised to zeros */
 			static struct sockaddr_in serv_addr; /* static = initialised to zeros */
-			//FIXME: the if statement will always execute unless there are exactly 3 arguments?
-			if (argc < 3 || argc > 3 || !strcmp(argv[1], "-?"))
+			
+			if (argc < 3 || (argc > 3 && !strcmp(argv[1], "-?")))
 			{
 				(void)printf("USAGE: %s <port-number> <top-directory>\t\tversion %d\n\n"
 								 "\tnweb is a small and very safe mini web server\n"
