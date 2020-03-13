@@ -44,6 +44,13 @@ typedef struct{
 	int req_age; //The number of requests that were given priority over this request (that is, the number of requests that arrived after this request arrived, but were dispatched before this request was dispatched). 
 } job_t;
 
+typedef struct{
+	int thread_id; //The id of the responding thread (numbered 0 to number of threads-1) 
+	int thread_count; //The total number of http requests this thread has handled 
+	int thread_html; //The total number of HTML requests this thread has handled 
+	int thread_image; //The total number of image requests this thread has handled 
+} tstats_t; //threadstats_t
+
 typedef struct {
 	job_t *jobBuffer;//standard (FIFO)
 	job_t *jobBuffer2;//this one is for images
@@ -62,14 +69,16 @@ typedef struct {
 time_t serverStart, current;
 
 //STAT KEEPING:
+//TODO: do these need to be static?
 int globalDispatchCount;
 int globalCompletedCount;
+int globalThreadNumber; //number of threads created so far;
 
 job_t getJob(tpool_t *pool);//not sure if there is a star here or an & - but this needs to be declared first
-void web(job_t *job, int hit);//declare the web function
+void web(job_t *job, tstats_t thread_stats,  int hit);//declare the web function
+char* getStatHeader(job_t job, tstats_t thread);
 
-	//Making global vars here - not sure if they need to be volatile , atomic, etc...
-static int schedalg;	//the scheduling algorithm to be performed. Must be one of ANY, FIFO, HPIC, or HPHC. 
+static int schedalg;	//the scheduling algorithm to be performed. Mustbe one of ANY, FIFO, HPIC, or HPHC. 
 
 static tpool_t the_pool; // one pool to rule them all
 
@@ -99,6 +108,7 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 
 	for (i = 0; i < num_threads; i++){
 		i++;
+		globalThreadNumber++;
 		pthread_create(&thread, NULL, worker, (void *)i);
 		pthread_detach(thread); // make non-joinable    
 	}
@@ -107,23 +117,36 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 /*This is the consumer. Each thread is consuming a 'job' and is performing that job by DO_THE_WORK*/
 static void *tpool_worker(void *arg)
 {
+    tstats_t stats;
 	tpool_t *tm = &the_pool;
 	unsigned int my_id = (uintptr_t)arg; //https://stackoverflow.com/questions/1845482/what-is-uintptr-t-data-type
+	//set thread id:
+	stats.thread_id = globalThreadNumber;
 	while (1) {
 		job_t *job = malloc(sizeof(job_t));//compiler compained the job was uninitialized so I stored space using malloc
 		pthread_mutex_lock(&(tm->work_mutex));//"A thread wishing to enter the critical region first tries to lock the associated mutex" -our sefer
 		while (tm->buf_capacity == 0) //AKA: THERE_IS_NO_WORK_TO_BE_DONE and thus we should block til there is work to be done
 			pthread_cond_wait(&(tm->c_cond), &(tm->work_mutex)); //release the work_mutex, "a worker thread must wait if the buffer is empty." says the doc
 		
-		/* Once the worker thread wakes, it performs the read on the network descriptor,
-		obtains the specified content (by reading the specified static file),
-		 and then returns the content to the client by writing to the descriptor*/
+		/* 	Once the worker thread wakes, it performs the read on the network descriptor,
+			obtains the specified content (by reading the specified static file),
+			and then returns the content to the client by writing to the descriptor */
 
 		//consider inlining getJob() to avoid potential issues of multiple copies
 		* job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
 		pthread_mutex_unlock(&(tm->work_mutex));//release the 
+		//increment stat counts:
+		stats.thread_count++;
+		if(job->image){//if job is an image increment image stat
+			stats.thread_image++;
+		}
+		else{//if job is not an image increment http stat
+			stats.thread_html++;
+		}
+		
+		
 		//TODO: does web() need to be inside the locked mutex?
-		web(job, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
+		web(job, stats, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
 		
 		/*After the work has been done on the job, lock the mutex and enter the critical zone to see if the producer needs to be woken up,
 		if he needs to be woken up, that is, when the buffer is empty then call cond_signal*/
@@ -241,7 +264,7 @@ struct {
 	}
 
 	/* this is a child web server process, so we can exit on errors -VAN KELLY SHLI?TA*/
-	void web(job_t *job, int hit) {
+	void web(job_t *job, tstats_t thread_stats, int hit) {
 		int fd = job->job_fd;
 		int j, file_fd, buflen;
 		long i, ret, len;
@@ -337,7 +360,7 @@ struct {
 		
 		(void)lseek(file_fd, (off_t)0, SEEK_SET);		/* lseek back to the file start ready for reading */
 		
-		//STAT STUFF:
+		//SETTING STATS:
 		time(&current);	
 		job->complete_time = difftime(current, serverStart);
 		job->complete_count = globalCompletedCount++;
@@ -356,6 +379,32 @@ struct {
 		endRequest:
 		sleep(1); /* allow socket to drain before signalling the socket is closed */
 		close(fd);
+	}
+
+	char* getStatHeader(job_t job, tstats_t thread){
+		char* ret = "X-stat-req-arrival-count: %d\n"
+					"X-stat-req-arrival-time: %l\n"
+					"X-stat-req-dispatch-count: %d\n"
+					"X-stat-req-dispatch-time: %l\n"
+					"X-stat-req-complete-count: %d\n"
+					"X-stat-req-complete-time: %l\n"
+					"X-stat-req-age: %d\n" //what type is req_age
+					"X-stat-thread-id: %d\n"
+					"X-stat-thread-count: %d\n"
+					"X-stat-thread-html: %data\n"
+					"X-stat-thread-image: %d\n\n",
+					job->arrival_count,
+					job->arrival_time,
+					job->dispatch_count,
+					job->dispatch_time,
+					job->complete_count,
+					job->complete_time,
+					job->age,
+					thread->thread_id,
+					thread->thread_count,
+					thread->thread_html,
+					thread->thread_image;
+		return ret;
 	}
 
 	/*Pass by reference, ie get the ACTUAL pool data*/
@@ -480,7 +529,7 @@ struct {
 				jobToAdd->job_fd = socketfd;
 				jobToAdd->job_id = hit;
 				
-				// see https://stackoverflow.com/questions/11981474/pread-and-lseek-not-working-on-socket-file-descriptor
+				//see https://stackoverflow.com/questions/11981474/pread-and-lseek-not-working-on-socket-file-descriptor
 				//GET IF  REQUEST IS IMAGE WITHOUT CHANGING READ POSITION
 				int flags = MSG_DONTWAIT | MSG_PEEK; //MSG_PEEK ==Peeks at an incoming message.The data is treated as unread and the next recv() or similar function shall still return this data.char * buf;
 				char* buf;

@@ -11,12 +11,13 @@
             "program": "${fileDirname}/${fileBasenameNoExtension}",
             //comment: args are as follows: ./server [portnum] [folder] [threads] [buffers] [schedalg] &
             //folder can be '.'
-            "args": ["8504", ".", "1", "5", "ANY"],
+            "args": ["localhost", "2019", "favorite.html"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
+            "miDebuggerPath": "/bin/usr/gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -44,7 +45,7 @@
                 }
             ],
             "preLaunchTask": "gcc build active file",
-            "miDebuggerPath": "/usr/bin/gdb"
+            "miDebuggerPath": "c:\\mings\\bin\\gdb.exe"
         }
     ]
 }
