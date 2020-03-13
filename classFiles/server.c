@@ -376,10 +376,6 @@ struct {
 			//there are no jobs in any buffer
 			//TODO: what should we do
 		}
-		//TODO: ANALYZE TO SEE IF WE SHOULD CALL WEB BEFORE UNLOCKING THE MUTEX OR AFTER
-		/*if(result != NULL){
-			web(result->job_fd,result->job_id);
-		}*/
 		/*setting our job's dispatch count to the global one, then incrementing the globalDispatchCount by 1*/
 		result.dispatch_count = globalDispatchCount++;
 		time(&current);
@@ -388,8 +384,9 @@ struct {
 	}
 		
 		int main(int argc, char **argv){
-			time(&serverStart);//tie at the start of the server
-			/*TODO: Read the command line, implement 
+			//TODO: the current time management system tracks seconds, but we need millisecnds
+			time(&serverStart);//time at the start of the server
+			/* Command line args:
 				argv[1] ==> port number
 				argv[2] ==> folder ... what is this exactly?
 				argv[3] ==> worker thread num
@@ -412,6 +409,7 @@ struct {
 			socklen_t length;
 			static struct sockaddr_in cli_addr;  /* static = initialised to zeros */
 			static struct sockaddr_in serv_addr; /* static = initialised to zeros */
+			//FIXME: the if statement will always execute unless there are exactly 3 arguments?
 			if (argc < 3 || argc > 3 || !strcmp(argv[1], "-?"))
 			{
 				(void)printf("USAGE: %s <port-number> <top-directory>\t\tversion %d\n\n"
