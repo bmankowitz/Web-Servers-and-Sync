@@ -15,6 +15,8 @@
 #include <stdarg.h>
 #include <err.h>
 #include <stdint.h>
+#include <sys/time.h>
+#include <time.h>
 #define VERSION 25
 #define BUFSIZE 8096
 #define ERROR      42
@@ -31,9 +33,15 @@
 typedef struct{
 	int job_id;
 	int job_fd; // the socket file descriptor   
-	// what other stuff needs to be here eventually?
-	//put in the file extension here -ARI
 	bool image;
+	//Statistics stuff:
+	int arrival_count; //The number of requests that arrived before this request arrived. Note that this is a shared value across all of the threads. 
+	int arrival_time; //The arrival time of this request, as first seen by the master thread. This time should be relative to the start time of the web server. 
+	int dispatch_count; //The number of requests that were dispatched before this request was dispatched (i.e., when the request was picked by a worker thread). Note that this is a shared value across all of the threads, this lichora in each job we increase a variable	
+	int dispatch_time; //The time this request was dispatched (i.e., when the request was picked by a worker thread). This time should be relative to the start time of the web server. 
+	int complete_count; //The number of requests that completed before this request completed; we define completed as the point after the file has been read and just before the worker thread starts writing the response on the socket.  Note that this is a shared value across all of the threads. 
+	int complete_time; //The time at which the read of the file is complete and the worker thread begins writing the response on the socket. This time should be relative to the start time of the web server. 
+	int req_age; //The number of requests that were given priority over this request (that is, the number of requests that arrived after this request arrived, but were dispatched before this request was dispatched). 
 } job_t;
 
 typedef struct {
@@ -50,9 +58,15 @@ typedef struct {
 	pthread_cond_t c_cond; // P/C condition variables    
 	pthread_cond_t p_cond;
 } tpool_t;
+//TIMEKEEPING:
+time_t serverStart, current;
+
+//STAT KEEPING:
+int globalDispatchCount;
+int globalCompletedCount;
 
 job_t getJob(tpool_t *pool);//not sure if there is a star here or an & - but this needs to be declared first
-void web(int fd, int hit);//declare the web function
+void web(job_t *job, int hit);//declare the web function
 
 	//Making global vars here - not sure if they need to be volatile , atomic, etc...
 static int schedalg;	//the scheduling algorithm to be performed. Must be one of ANY, FIFO, HPIC, or HPHC. 
@@ -106,10 +120,10 @@ static void *tpool_worker(void *arg)
 		 and then returns the content to the client by writing to the descriptor*/
 
 		//consider inlining getJob() to avoid potential issues of multiple copies
-		*job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
+		* job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
 		pthread_mutex_unlock(&(tm->work_mutex));//release the 
 		//TODO: does web() need to be inside the locked mutex?
-		web(job->job_fd, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
+		web(job, my_id); //call web() plus ?? -VAN KELLY SHLI?TA SPECIAL
 		
 		/*After the work has been done on the job, lock the mutex and enter the critical zone to see if the producer needs to be woken up,
 		if he needs to be woken up, that is, when the buffer is empty then call cond_signal*/
@@ -227,7 +241,8 @@ struct {
 	}
 
 	/* this is a child web server process, so we can exit on errors -VAN KELLY SHLI?TA*/
-	void web(int fd, int hit) {
+	void web(job_t *job, int hit) {
+		int fd = job->job_fd;
 		int j, file_fd, buflen;
 		long i, ret, len;
 		char *fstr;
@@ -322,6 +337,12 @@ struct {
 		
 		(void)lseek(file_fd, (off_t)0, SEEK_SET);		/* lseek back to the file start ready for reading */
 		
+		//STAT STUFF:
+		time(&current);	
+		job->complete_time = difftime(current, serverStart);
+		job->complete_count = globalCompletedCount++;
+		job->req_age = job->complete_count - job->arrival_count;
+
 		/* print out the response line, stock headers, and a blank line at the end. */
 		(void)sprintf(buffer, HDRS_OK, VERSION, len, fstr);
 		logger(LOG, "Header", buffer, hit);
@@ -340,7 +361,7 @@ struct {
 	/*Pass by reference, ie get the ACTUAL pool data*/
 	job_t getJob(tpool_t *the_pool){
 		job_t result;
-		
+
 		if(the_pool->actual_capacity2 > 0){//check for HP jobs
 			result = the_pool->jobBuffer2[the_pool->head2];
 			the_pool->head2++;
@@ -359,10 +380,15 @@ struct {
 		/*if(result != NULL){
 			web(result->job_fd,result->job_id);
 		}*/
+		/*setting our job's dispatch count to the global one, then incrementing the globalDispatchCount by 1*/
+		result.dispatch_count = globalDispatchCount++;
+		time(&current);
+		result.dispatch_time = difftime(current, serverStart);
 		return result;
 	}
 		
 		int main(int argc, char **argv){
+			time(&serverStart);//tie at the start of the server
 			/*TODO: Read the command line, implement 
 				argv[1] ==> port number
 				argv[2] ==> folder ... what is this exactly?
@@ -448,6 +474,11 @@ struct {
 				}
 
 				job_t * jobToAdd = malloc(sizeof(job_t));
+				//https://stackoverflow.com/questions/2916170/system-time-setting-using-c-library-function
+				//https://www.geeksforgeeks.org/difftime-c-library-function/
+				time(&current);
+				jobToAdd->arrival_time = difftime(current, serverStart);//FIXME:
+				jobToAdd->arrival_count = hit-1;
 				jobToAdd->job_fd = socketfd;
 				jobToAdd->job_id = hit;
 				
