@@ -40,6 +40,7 @@ int establishConnection(struct addrinfo *info) {
       continue;
     }
 
+    //clientfd is file descriptor that refers to the endpoint created by the socket method
     if (connect(clientfd, info->ai_addr, info->ai_addrlen) < 0) {
       close(clientfd);
       perror("[establishConnection:42:connect]");

@@ -76,6 +76,7 @@ long long current;
 int globalDispatchCount;
 int globalCompletedCount;
 int globalThreadNumber; //number of threads created so far;
+//check if globalThreadNumber should be 1 ,2 3, 4 or 0, 1, 2, 3
 
 job_t getJob(tpool_t *pool);//not sure if there is a star here or an & - but this needs to be declared first
 void web(job_t *job, tstats_t thread_stats,  int hit);//declare the web function
@@ -389,7 +390,7 @@ struct {
 		close(fd);
 	}
 
-	char* getStatHeader(job_t *job, tstats_t thread, long len, char* fstr){
+	char* getStatHeader(job_t *job, tstats_t thread, long len, char* fstr){ 
 
 		char* retbuf = malloc(sizeof(char) * HEADERBUF);
 		snprintf(retbuf, HEADERBUF, 
@@ -404,7 +405,7 @@ struct {
 					"X-stat-req-dispatch-time: %lld\n"
 					"X-stat-req-complete-count: %d\n"
 					"X-stat-req-complete-time: %lld\n"
-					"X-stat-req-age: %d\n" //what type is age
+					"X-stat-req-age: %d\n"
 					"X-stat-thread-id: %d\n"
 					"X-stat-thread-count: %d\n"
 					"X-stat-thread-html: %data\n"
@@ -571,9 +572,6 @@ struct {
 
 				//FOR TESTING PURPOSES ONLY: TODO: REMOVE THE LINE BELOW
 				tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
-
-
-
 				for (i = 0; extensions[i].ext != 0; i++){
 					len = strlen(extensions[i].ext);//jpeg == 4
 					//this is checking the last len digits of the request, and comparing it to our list

@@ -30,15 +30,16 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
-            //comment: args are as follows: ./server [portnum] [folder] [threads] [buffers] [schedalg] &
-            //folder can be '.'
+            //Your starting code for the web client is always invoked as:
+            //                  ./client [host] [portnum] [filename]
+            //Your finished web client must be invoked exactly as follows: 
+            //                  ./client [host] [portnum] [threads] [schedalg] [filename1] [filename2] 
             "args": ["localhost", "2019", "favorite.html"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerPath": "/bin/usr/gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
