@@ -18,14 +18,13 @@ struct addrinfo *getHostInfo(char* host, char* port) {
   // Setup hints
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM; //Provides sequenced, reliable, two-way, connection-based byte streams.An out - of - band data transmission mechanism may be supported.
-  if ((r = getaddrinfo(host, port, &hints, &getaddrinfo_res)))
-  {//returns 0 of succeeds so skips this if statement
+  hints.ai_socktype = SOCK_STREAM;
+  if ((r = getaddrinfo(host, port, &hints, &getaddrinfo_res))) {
     fprintf(stderr, "[getHostInfo:21:getaddrinfo] %s\n", gai_strerror(r));
     return NULL;
   }
 
-  return getaddrinfo_res; //we have selected the socket address structures returned in a list pointed to by getaddrinfo_res
+  return getaddrinfo_res;
 }
 
 // Establish connection with host
