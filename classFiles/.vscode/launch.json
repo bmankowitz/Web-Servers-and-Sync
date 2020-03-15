@@ -11,7 +11,7 @@
             "program": "${fileDirname}/${fileBasenameNoExtension}",
             //comment: args are as follows: ./server [portnum] [folder] [threads] [buffers] [schedalg] &
             //folder can be '.'
-            "args": ["1095", ".", "5", "5", "ANY"],            
+            "args": ["2020", ".", "5", "5", "ANY"],            
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
