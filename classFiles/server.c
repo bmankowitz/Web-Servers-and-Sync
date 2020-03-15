@@ -23,6 +23,7 @@
 #define LOG        44
 #define FORBIDDEN 403
 #define NOTFOUND  404
+#define HEADERBUF 2048
 
 //Scheduling Definitions:
 #define ANY 0
@@ -36,12 +37,12 @@ typedef struct{
 	bool image;
 	//Statistics stuff:
 	int arrival_count; //The number of requests that arrived before this request arrived. Note that this is a shared value across all of the threads. 
-	int arrival_time; //The arrival time of this request, as first seen by the master thread. This time should be relative to the start time of the web server. 
+	long long arrival_time; //The arrival time of this request, as first seen by the master thread. This time should be relative to the start time of the web server. 
 	int dispatch_count; //The number of requests that were dispatched before this request was dispatched (i.e., when the request was picked by a worker thread). Note that this is a shared value across all of the threads, this lichora in each job we increase a variable	
-	int dispatch_time; //The time this request was dispatched (i.e., when the request was picked by a worker thread). This time should be relative to the start time of the web server. 
+	long long dispatch_time; //The time this request was dispatched (i.e., when the request was picked by a worker thread). This time should be relative to the start time of the web server. 
 	int complete_count; //The number of requests that completed before this request completed; we define completed as the point after the file has been read and just before the worker thread starts writing the response on the socket.  Note that this is a shared value across all of the threads. 
-	int complete_time; //The time at which the read of the file is complete and the worker thread begins writing the response on the socket. This time should be relative to the start time of the web server. 
-	int req_age; //The number of requests that were given priority over this request (that is, the number of requests that arrived after this request arrived, but were dispatched before this request was dispatched). 
+	long long complete_time; //The time at which the read of the file is complete and the worker thread begins writing the response on the socket. This time should be relative to the start time of the web server. 
+	int age; //The number of requests that were given priority over this request (that is, the number of requests that arrived after this request arrived, but were dispatched before this request was dispatched). 
 } job_t;
 
 typedef struct{
@@ -66,7 +67,9 @@ typedef struct {
 	pthread_cond_t p_cond;
 } tpool_t;
 //TIMEKEEPING:
-time_t serverStart, current;
+// for legacy support before switching to a gettimeofday: time_t serverStart, current;
+long long serverStart;
+long long current;
 
 //STAT KEEPING:
 //TODO: do these need to be static?
@@ -76,7 +79,8 @@ int globalThreadNumber; //number of threads created so far;
 
 job_t getJob(tpool_t *pool);//not sure if there is a star here or an & - but this needs to be declared first
 void web(job_t *job, tstats_t thread_stats,  int hit);//declare the web function
-char* getStatHeader(job_t job, tstats_t thread);
+char* getStatHeader(job_t *job, tstats_t thread, long len, char* fstr);
+long long getTimeInMilliseconds();
 
 static int schedalg;	//the scheduling algorithm to be performed. Mustbe one of ANY, FIFO, HPIC, or HPHC. 
 
@@ -230,7 +234,7 @@ struct {
 
 	static const char *HDRS_FORBIDDEN = "HTTP/1.1 403 Forbidden\nContent-Length: 185\nConnection: close\nContent-Type: text/html\n\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\nThe requested URL, file type or operation is not allowed on this simple static file webserver.\n</body></html>\n";
 	static const char *HDRS_NOTFOUND = "HTTP/1.1 404 Not Found\nContent-Length: 136\nConnection: close\nContent-Type: text/html\n\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\nThe requested URL was not found on this server.\n</body></html>\n";
-	static const char *HDRS_OK = "HTTP/1.1 200 OK\nServer: nweb/%d.0\nContent-Length: %ld\nConnection: close\nContent-Type: %s\n\n";
+	//static const char *HDRS_OK = "HTTP/1.1 200 OK\nServer: nweb/%d.0\nContent-Length: %ld\nConnection: close\nContent-Type: %s\n\n";
 	static int dummy; //keep compiler happy
 
 	void logger(int type, char *s1, char *s2, int socket_fd) {
@@ -361,13 +365,17 @@ struct {
 		(void)lseek(file_fd, (off_t)0, SEEK_SET);		/* lseek back to the file start ready for reading */
 		
 		//SETTING STATS:
-		time(&current);	
-		job->complete_time = difftime(current, serverStart);
+		current = getTimeInMilliseconds();	
+		job->complete_time = current - serverStart;
 		job->complete_count = globalCompletedCount++;
-		job->req_age = job->complete_count - job->arrival_count;
+		job->age = job->complete_count - job->arrival_count;
 
 		/* print out the response line, stock headers, and a blank line at the end. */
-		(void)sprintf(buffer, HDRS_OK, VERSION, len, fstr);
+		//(void)sprintf(buffer, getStatHeader(job, thread_stats, len, fstr));
+		char* header = malloc(HEADERBUF);
+		header = getStatHeader(job, thread_stats, len, fstr);
+		(void)sprintf(buffer,"%s", header);
+
 		logger(LOG, "Header", buffer, hit);
 		
 		dummy = write(fd, buffer, strlen(buffer));
@@ -381,18 +389,29 @@ struct {
 		close(fd);
 	}
 
-	char* getStatHeader(job_t job, tstats_t thread){
-		char* ret = "X-stat-req-arrival-count: %d\n"
-					"X-stat-req-arrival-time: %l\n"
+	char* getStatHeader(job_t *job, tstats_t thread, long len, char* fstr){
+
+		char* retbuf = malloc(sizeof(char) * HEADERBUF);
+		snprintf(retbuf, HEADERBUF, 
+					"HTTP/1.1 200 OK\n"
+					"Server: nweb/%d.0\n"
+					"Content-Length: %ld\n"
+					"Connection: close\n"
+					"Content-Type: %s\n"
+					"X-stat-req-arrival-count: %d\n"
+					"X-stat-req-arrival-time: %lld\n"
 					"X-stat-req-dispatch-count: %d\n"
-					"X-stat-req-dispatch-time: %l\n"
+					"X-stat-req-dispatch-time: %lld\n"
 					"X-stat-req-complete-count: %d\n"
-					"X-stat-req-complete-time: %l\n"
-					"X-stat-req-age: %d\n" //what type is req_age
+					"X-stat-req-complete-time: %lld\n"
+					"X-stat-req-age: %d\n" //what type is age
 					"X-stat-thread-id: %d\n"
 					"X-stat-thread-count: %d\n"
 					"X-stat-thread-html: %data\n"
 					"X-stat-thread-image: %d\n\n",
+					VERSION,
+					len,
+					fstr,
 					job->arrival_count,
 					job->arrival_time,
 					job->dispatch_count,
@@ -400,11 +419,11 @@ struct {
 					job->complete_count,
 					job->complete_time,
 					job->age,
-					thread->thread_id,
-					thread->thread_count,
-					thread->thread_html,
-					thread->thread_image;
-		return ret;
+					thread.thread_id,
+					thread.thread_count,
+					thread.thread_html,
+					thread.thread_image);
+		return retbuf;
 	}
 
 	/*Pass by reference, ie get the ACTUAL pool data*/
@@ -427,14 +446,20 @@ struct {
 		}
 		/*setting our job's dispatch count to the global one, then incrementing the globalDispatchCount by 1*/
 		result.dispatch_count = globalDispatchCount++;
-		time(&current);
-		result.dispatch_time = difftime(current, serverStart);
+		current = getTimeInMilliseconds();
+		result.dispatch_time = current - serverStart;
 		return result;
 	}
+
+	long long getTimeInMilliseconds() {
+		// see @zebo zhuang on https://stackoverflow.com/questions/10192903/time-in-milliseconds-in-c
+    	struct timeval tv;
+    	gettimeofday(&tv,NULL);
+    	return (long long)(((long long)tv.tv_sec)*1000)+(tv.tv_usec/1000);
+}
 		
 		int main(int argc, char **argv){
-			//TODO: the current time management system tracks seconds, but we need millisecnds
-			time(&serverStart);//time at the start of the server
+			serverStart = getTimeInMilliseconds();//time at the start of the server
 			/* Command line args:
 				argv[1] ==> port number
 				argv[2] ==> folder ... what is this exactly?
@@ -521,10 +546,13 @@ struct {
 				}
 
 				job_t * jobToAdd = malloc(sizeof(job_t));
-				//https://stackoverflow.com/questions/2916170/system-time-setting-using-c-library-function
-				//https://www.geeksforgeeks.org/difftime-c-library-function/
-				time(&current);
-				jobToAdd->arrival_time = difftime(current, serverStart);//FIXME:
+
+				//DEPRECATED:
+					//https://stackoverflow.com/questions/2916170/system-time-setting-using-c-library-function
+					//https://www.geeksforgeeks.org/difftime-c-library-function/
+				//CURRENT:
+				current = getTimeInMilliseconds();
+				jobToAdd->arrival_time = current - serverStart;
 				jobToAdd->arrival_count = hit-1;
 				jobToAdd->job_fd = socketfd;
 				jobToAdd->job_id = hit;
@@ -539,6 +567,13 @@ struct {
 				buf[BUFSIZE] = '\0';
 				buflen = strlen(buf);
 				int len;
+
+
+				//FOR TESTING PURPOSES ONLY: TODO: REMOVE THE LINE BELOW
+				tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
+
+
+
 				for (i = 0; extensions[i].ext != 0; i++){
 					len = strlen(extensions[i].ext);//jpeg == 4
 					//this is checking the last len digits of the request, and comparing it to our list
@@ -547,8 +582,10 @@ struct {
 						if (!strncmp(extensions[i].ext, "htm", len) || !strncmp(extensions[i].ext, "html", len)){
 							jobToAdd->image = false;//YOU ARE RIGHT!!!
 						}
+						//moved tpool_add_work to be inside the if statement
+						tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
 					}
 				}
-				tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
+
 			}
 		}
