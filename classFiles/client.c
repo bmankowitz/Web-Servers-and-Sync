@@ -83,9 +83,10 @@ int main(int argc, char **argv) {
 
   // Send GET request > stdout
   GET(clientfd, argv[3]);
+  //while we can read what the server is sending us, an image or html file, put that in buf than enter the loop
   while (recv(clientfd, buf, BUF_SIZE, 0) > 0) {
-    fputs(buf, stdout);
-    memset(buf, 0, BUF_SIZE);
+    fputs(buf, stdout);//write what is in buf to the stdout stream so it displays
+    memset(buf, 0, BUF_SIZE);//clear the buffer so other get requests can be processed on the same socket
   }
 
   close(clientfd);
