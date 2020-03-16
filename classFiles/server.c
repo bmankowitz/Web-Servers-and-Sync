@@ -94,7 +94,7 @@ typedef void *(worker_fn)(void *);
  The 2nd and 3rd args are taken from the command line - ARI*/
 void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *worker){
 	pthread_t thread;
-	size_t i;
+	size_t i, j;
 	pthread_mutex_init(&(tm->work_mutex), NULL);//create a mutex
 	pthread_cond_init(&(tm->p_cond), NULL);//
 	pthread_cond_init(&(tm->c_cond), NULL);
@@ -112,9 +112,10 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 	//https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
 
 	for (i = 0; i < num_threads; i++){
-		i++;
+		j = i + 1;
+		//int j=i+1;//if we left this as i then i would increment twice each iteration and thus we would get half as many threads as intended
 		globalThreadNumber++;
-		pthread_create(&thread, NULL, worker, (void *)i);
+		pthread_create(&thread, NULL, worker, (void *)j);
 		pthread_detach(thread); // make non-joinable    
 	}
 }
@@ -527,11 +528,11 @@ struct {
 			}
 			//https://www.cs.rpi.edu/~moorthy/Courses/os98/Pgms/socket.html
 			serv_addr.sin_family = AF_INET;
-			serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);//this field contains the IP address of the host
+			serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);//this field contains the IP address of the host (localhost in our case of testing)
 			serv_addr.sin_port = htons(port);
 
-			if (bind(listenfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
-				logger(ERROR, "system call", "bind", 0);
+			if (bind(listenfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){//bind assigns the address specified by serv_addr to a socket reffered to a file descriptor listenfd
+				logger(ERROR, "system call", "bind", 0);//getting an errno #98: address in use already...FIXME:
 			}
 			if (listen(listenfd, 64) < 0){
 				logger(ERROR, "system call", "listen", 0);
