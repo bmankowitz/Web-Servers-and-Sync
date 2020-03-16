@@ -94,7 +94,7 @@ typedef void *(worker_fn)(void *);
  The 2nd and 3rd args are taken from the command line - ARI*/
 void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *worker){
 	pthread_t thread;
-	size_t i;
+	size_t i, j;
 	pthread_mutex_init(&(tm->work_mutex), NULL);//create a mutex
 	pthread_cond_init(&(tm->p_cond), NULL);//
 	pthread_cond_init(&(tm->c_cond), NULL);
@@ -112,9 +112,9 @@ void tpool_init(tpool_t *tm, size_t num_threads, size_t buf_size, worker_fn *wor
 	//https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
 
 	for (i = 0; i < num_threads; i++){
-		i++;
+		j = i + 1;
 		globalThreadNumber++;
-		pthread_create(&thread, NULL, worker, (void *)i);
+		pthread_create(&thread, NULL, worker, (void *)j);
 		pthread_detach(thread); // make non-joinable    
 	}
 }
