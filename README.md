@@ -4,7 +4,7 @@
 Benjamin Mankowitz		bmankowi@mail.yu.edu
 Ari Roffe				aroffe@mail.yu.edu
 ## A brief description of how you divided the work between you. 
-We 
+For the majority of the code, we used the Live Share feature of Visual Studio Code and a phone call to code together and plan our design. For the times that we worked asyncronously, Ben used we used a shared git repository to work together remotely. 
 ##Design overview: 
 A few simple paragraphs describing the overall structure of your code and any important structures. 
 
