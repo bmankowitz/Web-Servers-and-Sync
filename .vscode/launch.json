@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
+            "name": "(gdb) Launch for server",
             "type": "cppdbg",
             "request": "launch",
-            "program": "enter program name, for example ${workspaceFolder}/a.out",
-            "args": [],
+            "program": "${fileDirname}/${fileBasenameNoExtension}",
+            "args": ["9823", ".", "8", "16", "ANY"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -30,7 +30,7 @@
         "program": "${fileDirname}/${fileBasenameNoExtension}",
         //comment: args are as follows: ./server [portnum] [folder] [threads] [buffers] [schedalg] &
         //folder can be '.'
-        "args": ["localhost", "2019", "favorite.html",],
+        "args": ["localhost", "9823", "index.html",],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
@@ -63,7 +63,7 @@
                 }
             ],
             "preLaunchTask": "gcc build active file",
-            "miDebuggerPath": "/usr/bin/gdb"
+            //"miDebuggerPath": "/usr/bin/gdb"
         }
     ]
 }
