@@ -1,13 +1,20 @@
- INFO: nweb starting:85:12101
-ERROR: Invalid port number (try 1025->65000):85 Errno=0 exiting pid=12101
-ERROR: system call:bind Errno=13 exiting pid=12101
- INFO: nweb starting:8504:12414
- INFO: nweb starting:8504:13199
- INFO: nweb starting:8504:13327
- INFO: nweb starting:8504:13396
- INFO: nweb starting:8504:13732
- INFO: request:man accept*:1
-FORBIDDEN: Only simple GET operation supported:man accept*
+ INFO: nweb starting:2020:424
+ INFO: nweb starting:2020:1198
+ INFO: nweb starting:2020:1745
+ INFO: nweb starting:2020:2319
+ INFO: nweb starting:2020:2906
+ INFO: nweb starting:2020:3254
+ INFO: nweb starting:2020:3459
+ INFO: nweb starting:2020:3741
+ INFO: nweb starting:2020:3959
+ INFO: nweb starting:2020:4380
+ INFO: nweb starting:2020:4608
+ INFO: nweb starting:2020:4875
+ INFO: nweb starting:2020:5775
+ INFO: nweb starting:2020:6093
+ INFO: nweb starting:2020:6322
+ INFO: nweb starting:2020:6527
+ INFO: nweb starting:2020:6906
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
@@ -21,6 +28,7 @@ FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
+ INFO: nweb starting:8504:7207
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
@@ -82,9 +90,6 @@ FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
- INFO: nweb starting:8504:14164
- INFO: request:get / HTTP/1.1*:1
-NOT FOUND: failed to open file:index.html
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
@@ -103,6 +108,7 @@ FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
+ INFO: nweb starting:2020:7485
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
@@ -120,6 +126,8 @@ FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
+ INFO: request:GET /index.htm HTTP/1.0****:1
+NOT FOUND: failed to open file:index.htm
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
@@ -169,327 +177,3 @@ FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
 FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
-FORBIDDEN: failed to read browser request:
- INFO: nweb starting:8504:14997
- INFO: nweb starting:8504:15194
- INFO: nweb starting:8504:15266

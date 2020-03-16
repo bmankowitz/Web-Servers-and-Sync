@@ -277,7 +277,7 @@ struct {
 		static char buffer[BUFSIZE + 1]; /* static so zero filled */
 
 		/* read Web request in one go */
-		ret = read(fd, buffer, BUFSIZE);//Read up to BUFSIZE bytes from the file descriptor fd into the buffer array
+		ret = recv(fd, buffer, BUFSIZE, 0);//Read up to BUFSIZE bytes from the file descriptor fd into the buffer array
 
 		/* read failure stop now */
 		if (ret == 0 || ret == -1){
@@ -563,22 +563,25 @@ struct {
 				int flags = MSG_DONTWAIT | MSG_PEEK; //MSG_PEEK ==Peeks at an incoming message.The data is treated as unread and the next recv() or similar function shall still return this data.char * buf;
 				char* buf;
 				buf = (char*)malloc(BUFSIZE);
-				int buflen;
 				recv(socketfd, buf, BUFSIZE, flags);
-				buf[BUFSIZE] = '\0';
-				buflen = strlen(buf);
-				int len;
-
+				buf[BUFSIZE] = 0;
+				//0x84074f0 "GET /index.htm HTTP/1.0\r\n\r\n"
+				//char *strstr(const char *s1, const char *s2);
 
 				//FOR TESTING PURPOSES ONLY: TODO: REMOVE THE LINE BELOW
-				tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
+				//tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
+				//dummy = write(socketfd, HDRS_NOTFOUND, strlen(HDRS_NOTFOUND));
+				//tstats_t fake;
+				//* header = getStatHeader(jobToAdd, fake , 10, "fake");
+				//dummy = write(socketfd, header , strlen(header));
+				//END TESTING
+
 				for (i = 0; extensions[i].ext != 0; i++){
-					len = strlen(extensions[i].ext);//jpeg == 4
 					//this is checking the last len digits of the request, and comparing it to our list
-					if (!strncmp(&buf[buflen - len], extensions[i].ext, len))
+					if (!(strstr(buf, extensions[i].ext) == NULL))
 					{
-						if (!strncmp(extensions[i].ext, "htm", len) || !strncmp(extensions[i].ext, "html", len)){
-							jobToAdd->image = false;//YOU ARE RIGHT!!!
+						if (!(strstr(buf, ".htm") == NULL || strstr(buf, ".html") == NULL)){
+							jobToAdd->image = true;//If it is not a htm or html, it is an image
 						}
 						//moved tpool_add_work to be inside the if statement
 						tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
