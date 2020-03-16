@@ -235,6 +235,7 @@ struct {
 
 	static const char *HDRS_FORBIDDEN = "HTTP/1.1 403 Forbidden\nContent-Length: 185\nConnection: close\nContent-Type: text/html\n\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\nThe requested URL, file type or operation is not allowed on this simple static file webserver.\n</body></html>\n";
 	static const char *HDRS_NOTFOUND = "HTTP/1.1 404 Not Found\nContent-Length: 136\nConnection: close\nContent-Type: text/html\n\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\nThe requested URL was not found on this server.\n</body></html>\n";
+	//static const char* HELLO_WORLD = "HTTP/1.1 200 OK\nDate: Mon, 27 Jul 2009 12:28:53 GMT\nServer: Apache/2.2.14 (Win32)\nLast-Modified: Wed, 22 Jul 2009 19:15:56 GMT\nContent-Length: 88\nContent-Type: text/html\nConnection: Closed\n<html>\n<body>\n<h1>Hello, World!</h1>\n</body>\n</html>\n\n";
 	//static const char *HDRS_OK = "HTTP/1.1 200 OK\nServer: nweb/%d.0\nContent-Length: %ld\nConnection: close\nContent-Type: %s\n\n";
 	static int dummy; //keep compiler happy
 
@@ -373,12 +374,12 @@ struct {
 
 		/* print out the response line, stock headers, and a blank line at the end. */
 		//(void)sprintf(buffer, getStatHeader(job, thread_stats, len, fstr));
+
 		char* header = malloc(HEADERBUF);
 		header = getStatHeader(job, thread_stats, len, fstr);
 		(void)sprintf(buffer,"%s", header);
-
 		logger(LOG, "Header", buffer, hit);
-		
+
 		dummy = write(fd, buffer, strlen(buffer));
 		/* send file in 8KB block - last block may be smaller */
 		while ((ret = read(file_fd, buffer, BUFSIZE)) > 0){
@@ -476,8 +477,8 @@ struct {
 			else if(strcmp(argv[5], "HPIC")==0) schedalg = HPIC;
 			else if(strcmp(argv[5], "HPHC")==0) schedalg = HPHC;
 			else{
-				//There was an error!
-				warn("bad scheduling algorithm");//This is a Ben special
+				(void)printf("ERROR: Bad scheduling algorithm %s, see nweb -?\n", argv[5]);
+				exit(5);
 			}
 
 			int i, port, listenfd, socketfd, hit;
