@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "args": ["2020",".","2", "2", "ANY"],
+            "args": ["9829", ".", "8", "16", "ANY"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -23,15 +23,14 @@
                 }
             ]
         },
-        
     {
-        "name": "(gdb) Launch",
+        "name": "(gdb) Launch for client",
         "type": "cppdbg",
         "request": "launch",
         "program": "${fileDirname}/${fileBasenameNoExtension}",
         //comment: args are as follows: ./server [portnum] [folder] [threads] [buffers] [schedalg] &
         //folder can be '.'
-        "args": ["8504", ".", "1", "5", "ANY"],
+        "args": ["localhost", "9829", "10", "CONCUR", "/index.html"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
@@ -64,7 +63,7 @@
                 }
             ],
             "preLaunchTask": "gcc build active file",
-            "miDebuggerPath": "/usr/bin/gdb"
+            //"miDebuggerPath": "/usr/bin/gdb"
         }
     ]
 }
