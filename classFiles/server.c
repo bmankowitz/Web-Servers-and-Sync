@@ -179,6 +179,7 @@ bool tpool_add_work(tpool_t * tm, job_t job){
 		case FIFO: //This is where I put the previous code. I think it was FIFO
 			//get oldest item in buffer and work on it:
 			tm->jobBuffer[tm->tail++] = job;//go to the next open entry in the buffer, designated by tail, and shove the job there
+			tm->actual_capacity++;
 			//REMEMBER, the tail could be zero, but we will never have the head>tail cuz then it would mean we are reading data that hasn't been inserted
 			//tm->tail++ % tm->buf_capacity;//tail should wrap around to the front when it reaches the end of the buffer
 			break;
@@ -188,10 +189,12 @@ bool tpool_add_work(tpool_t * tm, job_t job){
 			if(job.image == 1){//I have literally no idea why, but it'll complaint if you use '->' instead of '.'
 				//add to HP queue:
 				tm->jobBuffer2[tm->tail2++] = job;//add jobs to the tail
+				tm->actual_capacity2++;
 			}
 			else{
 				//add to LP queue:
 				tm->jobBuffer[tm->tail++] = job;//add lower-priority jobs to tail of the lower priority queue
+				tm->actual_capacity++;
 			}
 			break;
 		case HPHC:
@@ -200,10 +203,12 @@ bool tpool_add_work(tpool_t * tm, job_t job){
 			if(job.image == 0){//I have literally no idea why, but it'll complaint if you use '->' instead of '.'
 				//add to HP queue:
 				tm->jobBuffer2[tm->tail2++] = job;
+				tm->actual_capacity2++;
 			}
 			else{
 				//add to LP queue:
 				tm->jobBuffer[tm->tail++] = job;
+				tm->actual_capacity++;
 			}
 			break;
 			
@@ -575,6 +580,7 @@ struct {
 				//tstats_t fake;
 				//* header = getStatHeader(jobToAdd, fake , 10, "fake");
 				//dummy = write(socketfd, header , strlen(header));
+				buf = "GET /index.html";
 				//END TESTING
 
 				for (i = 0; extensions[i].ext != 0; i++){

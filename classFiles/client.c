@@ -9,14 +9,67 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
+/*Treads */
+#include <pthread.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #define BUF_SIZE 250
 #define FIFO 0
 #define CONCUR 1
 
-typedef void *(worker_fn)(void *);
+typedef struct {
+  size_t thread_num;
+  pthread_mutex_t work_mutex;
+  pthread_cond_t c_cond; // P/C condition variables
+  pthread_cond_t p_cond;
+} tpool_t;//KRAZY FOR KELLY
 
-// Get host information (used to establishConnection)
-struct addrinfo *getHostInfo(char* host, char* port) {
+typedef void *(worker_fn)(void *);
+static tpool_t the_pool;
+static char* host;
+static char* port;
+static int threads;
+static char* filename;
+int i;
+static pthread_barrier_t barrier;
+
+/*function header*/
+static tpool_t *client_pool;
+void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker);
+struct addrinfo *getHostInfo(char *host, char *port);
+int establishConnection(struct addrinfo *info);
+void GET(int clientfd, char *path);
+static void *client_worker_fifo(void *arg);
+static void *client_worker_concur(void *arg);
+
+void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker)
+{
+  pthread_t thread;
+  size_t i, j;
+
+  //initialize barrier here
+  pthread_barrier_init(&barrier, NULL, num_threads);
+
+  pthread_mutex_init(&(tm->work_mutex), NULL); //create a mutex
+  pthread_cond_init(&(tm->p_cond), NULL);      //
+  pthread_cond_init(&(tm->c_cond), NULL);
+
+  tm->thread_num = num_threads;
+
+  for(i = 0; i < num_threads; i++){
+    j = i + 1;
+    pthread_create(&thread, NULL, worker, (void *)j);
+    pthread_detach(thread);
+  }
+}
+
+  // Get host information (used to establishConnection)
+  struct addrinfo *getHostInfo(char *host, char *port){
   int r;
   struct addrinfo hints, *getaddrinfo_res;
   // Setup hints
@@ -66,25 +119,91 @@ void GET(int clientfd, char *path) {
   send(clientfd, req, strlen(req), 0);
 }
 
-static void *client_worker(void * arg){
+static void *client_worker_fifo(void * arg){
+  char buf[BUF_SIZE];
   //each thread sends a reuest to the server
+  /*1. request the same file*/
+  while(1){
+    pthread_mutex_lock(&(client_pool->work_mutex));
+    //CONNECT
+    int clientfd = establishConnection(getHostInfo(host, port));
+    if (clientfd == -1){
+      fprintf(stderr,
+              "[main:73] Failed to connect to: %s:%s%s \n",
+              host, port, filename);
+      exit(3);
+    }
+    //GET request
+    GET(clientfd, filename);
+    //RELEASES TO ANOTHER THREAD
+    pthread_mutex_unlock(&(client_pool->work_mutex));
+    //RECEIVE
+    while (recv(clientfd, buf, BUF_SIZE, 0) > 0) {
+      fputs(buf, stdout);
+      memset(buf, 0, BUF_SIZE);
+    }
+    //BLOCK AT THE BARRIER
+    pthread_barrier_wait(&barrier);
+    //then repeat
+  }
 }
 
-int main(int argc, char **argv) {
+static void *client_worker_concur(void* arg){
+  char buf[BUF_SIZE];
+  while(1){
+    int clientfd = establishConnection(getHostInfo(host, port));
+    if (clientfd == -1){
+      fprintf(stderr,
+              "[main:73] Failed to connect to: %s:%s%s \n",
+              host, port, filename);
+      exit(3);
+    }
+
+    GET(clientfd, filename);
+    while (recv(clientfd, buf, BUF_SIZE, 0) > 0) {
+      fputs(buf, stdout);
+      memset(buf, 0, BUF_SIZE);
+    }
+    //BLOCK AT THE BARRIER
+    pthread_barrier_wait(&barrier);
+    //then repeat
+  }
+}
+
+    int main(int argc, char **argv){
   int schedalg;
   int clientfd;
+
   int port, threads;
   struct sockaddr_in server;//socket information about the server
   struct sockaddr_in client;//socket information about
+
   int clientLen;
   size_t i, j;//for the loop counter
 
-  char buf[BUF_SIZE];//recieve the data buffer
-
-  if (argc != 4) {
-    fprintf(stderr, "USAGE: %s <hostname> <port> <request path>\n", argv[0]);
+  if (argc != 6){
+    fprintf(stderr, "USAGE: %s <hostname> <port> <threads> <schedalg> <filename1> <filename2> \n", argv[0]);
     return 1;
   }
+  port = atoi(argv[2]);
+  threads = atoi(argv[3]);
+
+  /*Initialize a thread pool*/
+  //Set the schedalg:
+			if(strcmp(argv[4], "CONCUR")==0) schedalg = CONCUR;
+			else if(strcmp(argv[4], "FIFO")==0) schedalg = FIFO;
+      else ;//FIXME: invalid schedalg;
+  
+  switch (schedalg){
+    case CONCUR:
+      tpool_init_client(client_pool, threads, client_worker_concur);
+      break;
+    case FIFO:
+      tpool_init_client(client_pool, threads, client_worker_fifo);
+      break;
+    default:
+      exit(0);
+  }  
 
   /* The program ./client is run w/the following args
   argv[1] ==> [host] 
@@ -94,49 +213,6 @@ int main(int argc, char **argv) {
   argv[5] ==> [filename1]
   argv[6] ==> [filename2]
   */
-
-port = atoi(argv[2]);
-threads = atoi(argv[3]);
-if (strcmp(argv[4], "CONCUR") == 0)
-  schedalg = CONCUR;
-else if (strcmp(argv[4], "FIFO") == 0)
-  schedalg = FIFO;
-
-switch(schedalg){
-  case CONCUR:
-    do_concurrent_groups(**argv, client_worker);
-    break;
-  case FIFO:
-    do_fifo();
-    break;
-  default:
-    exit(0);
-}
-
-// Establish connection with <hostname>:<port>
-//establishConnection opens
-  void do_concurrent_groups(char ** argv, worker_fn worker){
-    for(i = 0; i < threads; i++){
-      j = i+1;
-      pthread_create(&thread, NULL, worker, (void *)j);
-    }
-    clientfd = establishConnection(getHostInfo(argv[1], argv[2]));
-    if (clientfd == -1){
-      fprintf(stderr,
-            "[main:73] Failed to connect to: %s:%s%s \n",
-            argv[1], argv[2], argv[3]);
-      return 3;
-    }
-
-    // Send GET request > stdout
-    GET(clientfd, argv[5]);
-    while (recv(clientfd, buf, BUF_SIZE, 0) > 0) {
-      fputs(buf, stdout);
-      memset(buf, 0, BUF_SIZE);
-    }
-
-    close(clientfd);
     return 0;
-  }//end of concurrent_groups
 
 }//end of main
