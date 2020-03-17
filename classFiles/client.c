@@ -1,15 +1,10 @@
-/* Generic */
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-/* Network */
 #include <netdb.h>
 #include <sys/socket.h>
-
-/*Treads */
 #include <pthread.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -121,6 +116,7 @@ int establishConnection(struct addrinfo *info)
 
   freeaddrinfo(info);
   return -1;
+//done - you can delete this when read
 }
 
 // Send GET request
