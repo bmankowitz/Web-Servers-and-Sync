@@ -41,14 +41,14 @@ static pthread_barrier_t barrier;
 
 /*function header*/
 static tpool_t *client_pool;
-void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker);
+void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port);
 struct addrinfo *getHostInfo(char *host, char *port);
 int establishConnection(struct addrinfo *info);
 void GET(int clientfd, char *path);
 static void *client_worker_fifo(void *arg);
 static void *client_worker_concur(void *arg);
 
-void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker)
+void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port)
 {
   pthread_t thread;
   size_t i, j;
@@ -56,11 +56,13 @@ void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker)
   //initialize barrier here
   pthread_barrier_init(&barrier, NULL, num_threads);
 
-  pthread_mutex_init(&(tm->work_mutex), NULL); //create a mutex
-  pthread_cond_init(&(tm->p_cond), NULL);      //
+  pthread_mutex_init(&(tm->work_mutex), NULL);//create a mutex
+  pthread_cond_init(&(tm->p_cond), NULL);
   pthread_cond_init(&(tm->c_cond), NULL);
 
   tm->thread_num = num_threads;
+  tm->host = host;
+  tm->port = port;
 
   for (i = 0; i < num_threads; i++)
   {
@@ -202,9 +204,6 @@ int main(int argc, char **argv)
     fprintf(stderr, "USAGE: %s <hostname> <port> <threads> <schedalg> <filename1> <filename2> \n", argv[0]);
     return 1;
   }
-  client_pool->host = argv[2];
-  client_pool->port = argv[3];
-
   /*Initialize a thread pool*/
   //Set the schedalg:
   if (strcmp(argv[4], "CONCUR") == 0)
@@ -217,10 +216,10 @@ int main(int argc, char **argv)
   switch (schedalg)
   {
   case CONCUR:
-    tpool_init_client(client_pool, atoi(argv[3]), client_worker_concur);
+    tpool_init_client(client_pool, atoi(argv[3]), client_worker_concur, argv[1], argv[2]);
     break;
   case FIFO:
-    tpool_init_client(client_pool, atoi(argv[3]), client_worker_fifo);
+    tpool_init_client(client_pool, atoi(argv[3]), client_worker_fifo, argv[1], argv[2]);
     break;
   default:
     exit(0);
