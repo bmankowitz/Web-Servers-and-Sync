@@ -572,7 +572,7 @@ struct {
 
 
 				//FOR TESTING PURPOSES ONLY: TODO: REMOVE THE LINE BELOW
-				tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
+				//tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
 				for (i = 0; extensions[i].ext != 0; i++){
 					len = strlen(extensions[i].ext);//jpeg == 4
 					//this is checking the last len digits of the request, and comparing it to our list
