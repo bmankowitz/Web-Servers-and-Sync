@@ -35,7 +35,7 @@ int i;
 static pthread_barrier_t barrier;
 
 /*function header*/
-static tpool_t *client_pool;
+static tpool_t client_pool;
 void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port);
 struct addrinfo *getHostInfo(char *host, char *port);
 int establishConnection(struct addrinfo *info);
@@ -134,20 +134,20 @@ static void *client_worker_fifo(void *arg)
   /*1. request the same file*/
   while (1)
   {
-    pthread_mutex_lock(&(client_pool->work_mutex));
+    pthread_mutex_lock(&(client_pool.work_mutex));
     //CONNECT
-    int clientfd = establishConnection(getHostInfo(client_pool->host, client_pool->port));
+    int clientfd = establishConnection(getHostInfo(client_pool.host, client_pool.port));
     if (clientfd == -1)
     {
       fprintf(stderr,
               "[main:73] Failed to connect to: %s:%s%s \n",
-              client_pool->host, client_pool->port, filename);
+              client_pool.host, client_pool.port, filename);
       exit(3);
     }
     //GET request
     GET(clientfd, filename);
     //RELEASES TO ANOTHER THREAD
-    pthread_mutex_unlock(&(client_pool->work_mutex));
+    pthread_mutex_unlock(&(client_pool.work_mutex));
     //RECEIVE
     while (recv(clientfd, buf, BUF_SIZE, 0) > 0)
     {
@@ -165,12 +165,12 @@ static void *client_worker_concur(void *arg)
   char buf[BUF_SIZE];
   while (1)
   {
-    int clientfd = establishConnection(getHostInfo(client_pool->host, client_pool->port));
+    int clientfd = establishConnection(getHostInfo(client_pool.host, client_pool.port));
     if (clientfd == -1)
     {
       fprintf(stderr,
               "[main:73] Failed to connect to: %s:%s%s \n",
-              client_pool->host, client_pool->port, filename);
+              client_pool.host, client_pool.port, filename);
       exit(3);
     }
 
@@ -212,10 +212,10 @@ int main(int argc, char **argv)
   switch (schedalg)
   {
   case CONCUR:
-    tpool_init_client(client_pool, atoi(argv[3]), client_worker_concur, argv[1], argv[2]);
+    tpool_init_client(&client_pool, atoi(argv[3]), client_worker_concur, argv[1], argv[2]);
     break;
   case FIFO:
-    tpool_init_client(client_pool, atoi(argv[3]), client_worker_fifo, argv[1], argv[2]);
+    tpool_init_client(&client_pool, atoi(argv[3]), client_worker_fifo, argv[1], argv[2]);
     break;
   default:
     exit(0);
