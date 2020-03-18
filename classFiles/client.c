@@ -26,6 +26,7 @@ typedef struct
 
   char* host;
   char* port;
+  char* filename;
 } tpool_t; //KRAZY FOR KELLY
 
 typedef void *(worker_fn)(void *);
@@ -36,14 +37,14 @@ static pthread_barrier_t barrier;
 
 /*function header*/
 static tpool_t client_pool;
-void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port);
+void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port, char* filename);
 struct addrinfo *getHostInfo(char *host, char *port);
 int establishConnection(struct addrinfo *info);
 void GET(int clientfd, char *path);
 static void *client_worker_fifo(void *arg);
 static void *client_worker_concur(void *arg);
 
-void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port)
+void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port, char* filename)
 {
   pthread_t thread;
   size_t i, j;
@@ -58,6 +59,7 @@ void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* 
   tm->thread_num = num_threads;
   tm->host = host;
   tm->port = port;
+  tm->filename = filename;
 
   for (i = 0; i < num_threads; i++)
   {
@@ -212,10 +214,10 @@ int main(int argc, char **argv)
   switch (schedalg)
   {
   case CONCUR:
-    tpool_init_client(&client_pool, atoi(argv[3]), client_worker_concur, argv[1], argv[2]);
+    tpool_init_client(&client_pool, atoi(argv[3]), client_worker_concur, argv[1], argv[2],argv[5]);
     break;
   case FIFO:
-    tpool_init_client(&client_pool, atoi(argv[3]), client_worker_fifo, argv[1], argv[2]);
+    tpool_init_client(&client_pool, atoi(argv[3]), client_worker_fifo, argv[1], argv[2],argv[5]);
     break;
   default:
     exit(0);

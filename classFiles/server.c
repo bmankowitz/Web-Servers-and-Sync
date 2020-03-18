@@ -18,7 +18,7 @@
 #include <sys/time.h>
 #include <time.h>
 #define VERSION 25
-#define BUFSIZE 8096
+#define BUFSIZE 1024
 #define ERROR      42
 #define LOG        44
 #define FORBIDDEN 403
@@ -566,7 +566,7 @@ struct {
 				
 				//see https://stackoverflow.com/questions/11981474/pread-and-lseek-not-working-on-socket-file-descriptor
 				//GET IF  REQUEST IS IMAGE WITHOUT CHANGING READ POSITION
-				int flags = MSG_DONTWAIT | MSG_PEEK; //MSG_PEEK ==Peeks at an incoming message.The data is treated as unread and the next recv() or similar function shall still return this data.char * buf;
+				int flags = MSG_PEEK; //MSG_PEEK ==Peeks at an incoming message.The data is treated as unread and the next recv() or similar function shall still return this data.char * buf;
 				char* buf;
 				buf = (char*)malloc(BUFSIZE);
 				recv(socketfd, buf, BUFSIZE, flags);
@@ -580,7 +580,7 @@ struct {
 				//tstats_t fake;
 				//* header = getStatHeader(jobToAdd, fake , 10, "fake");
 				//dummy = write(socketfd, header , strlen(header));
-				buf = "GET /index.html";
+				//buf = "GET /index.html";
 				//END TESTING
 
 				for (i = 0; extensions[i].ext != 0; i++){
