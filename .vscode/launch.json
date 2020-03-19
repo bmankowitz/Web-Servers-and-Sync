@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "args": ["9809", ".", "8", "16", "ANY"],
+            "args": ["40021", ".", "2", "8", "FIFO"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -30,7 +30,7 @@
         "program": "${fileDirname}/${fileBasenameNoExtension}",
         //comment: args are as follows: ./server [portnum] [folder] [threads] [buffers] [schedalg] &
         //folder can be '.'
-        "args": ["localhost", "9809", "4", "CONCUR", "/index.html"],
+        "args": ["localhost", "40021", "2", "FIFO", "/index.html"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],

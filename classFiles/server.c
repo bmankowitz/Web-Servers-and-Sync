@@ -139,7 +139,7 @@ static void *tpool_worker(void *arg)
 			and then returns the content to the client by writing to the descriptor */
 
 		//consider inlining getJob() to avoid potential issues of multiple copies
-		* job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
+		*job = getJob(tm);//REMOVE_JOB_FROM_BUFFER
 		pthread_mutex_unlock(&(tm->work_mutex));//release the 
 		//increment stat counts:
 		stats.thread_count++;
@@ -430,15 +430,15 @@ struct {
 
 	/*Pass by reference, ie get the ACTUAL pool data*/
 	job_t getJob(tpool_t *the_pool){
-		job_t result;
+		job_t *result = malloc(sizeof(job_t));
 
 		if(the_pool->actual_capacity2 > 0){//check for HP jobs
-			result = the_pool->jobBuffer2[the_pool->head2];
+			*result = the_pool->jobBuffer2[the_pool->head2];
 			the_pool->head2++;
 			the_pool->actual_capacity2--;
 		}
 		else if(the_pool->actual_capacity > 0){
-			result = the_pool->jobBuffer[the_pool->head];
+			*result = the_pool->jobBuffer[the_pool->head];//TODO: THIS LINE IS SUPER BUGGY
 			the_pool->head++;
 			the_pool->actual_capacity--;
 		}
@@ -447,10 +447,10 @@ struct {
 			//TODO: what should we do
 		}
 		/*setting our job's dispatch count to the global one, then incrementing the globalDispatchCount by 1*/
-		result.dispatch_count = globalDispatchCount++;
+		result->dispatch_count = globalDispatchCount++;
 		current = getTimeInMilliseconds();
-		result.dispatch_time = current - serverStart;
-		return result;
+		result->dispatch_time = current - serverStart;
+		return *result;
 	}
 
 	long long getTimeInMilliseconds() {
@@ -561,24 +561,23 @@ struct {
 				
 				//see https://stackoverflow.com/questions/11981474/pread-and-lseek-not-working-on-socket-file-descriptor
 				//GET IF  REQUEST IS IMAGE WITHOUT CHANGING READ POSITION
-				int flags = MSG_DONTWAIT | MSG_PEEK; //MSG_PEEK ==Peeks at an incoming message.The data is treated as unread and the next recv() or similar function shall still return this data.char * buf;
+				int flags = MSG_PEEK; //MSG_PEEK ==Peeks at an incoming message.The data is treated as unread and the next recv() or similar function shall still return this data.char * buf;
 				char* buf;
 				buf = (char*)malloc(BUFSIZE);
-				int buflen;
 				recv(socketfd, buf, BUFSIZE, flags);
 				buf[BUFSIZE] = '\0';
-				buflen = strlen(buf);
-				int len;
+				//int len;
 
 
 				//FOR TESTING PURPOSES ONLY: TODO: REMOVE THE LINE BELOW
-				tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
+				//tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
 				for (i = 0; extensions[i].ext != 0; i++){
-					len = strlen(extensions[i].ext);//jpeg == 4
+					//len = strlen(extensions[i].ext);//jpeg == 4
 					//this is checking the last len digits of the request, and comparing it to our list
-					if (!strncmp(&buf[buflen - len], extensions[i].ext, len))
+					if (strstr(buf, extensions[i].ext) != NULL)
 					{
-						if (!strncmp(extensions[i].ext, "htm", len) || !strncmp(extensions[i].ext, "html", len)){
+						if (strstr(buf, ".htm") != NULL || strstr(buf, ".html") != NULL)
+						{
 							jobToAdd->image = false;//YOU ARE RIGHT!!!
 						}
 						//moved tpool_add_work to be inside the if statement

@@ -31,24 +31,26 @@ typedef struct
 
   char* host;
   char* port;
+  char* filename;
+
+  int clientfd;
 } tpool_t; //KRAZY FOR KELLY
 
 typedef void *(worker_fn)(void *);
 //static int threads;
-static char *filename;
 int i;
 static pthread_barrier_t barrier;
 
 /*function header*/
 static tpool_t *client_pool;
-void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port);
+void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port, char* filename);
 struct addrinfo *getHostInfo(char *host, char *port);
 int establishConnection(struct addrinfo *info);
 void GET(int clientfd, char *path);
 static void *client_worker_fifo(void *arg);
 static void *client_worker_concur(void *arg);
 
-void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port)
+void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* host, char* port, char* filename)
 {
     pthread_t thread;
   size_t i, j;
@@ -65,6 +67,8 @@ void tpool_init_client(tpool_t *tm, size_t num_threads, worker_fn worker, char* 
   tm->thread_num = num_threads;
   tm->host = host;
   tm->port = port;
+  tm->filename = filename;
+  tm->clientfd = establishConnection(getHostInfo(tm->host, tm->port));
 
   for (i = 0; i < num_threads; i++)
   {
@@ -141,21 +145,12 @@ static void *client_worker_fifo(void *arg)
   while (1)
   {
     pthread_mutex_lock(&(client_pool->work_mutex));
-    //CONNECT
-    int clientfd = establishConnection(getHostInfo(client_pool->host, client_pool->port));
-    if (clientfd == -1)
-    {
-      fprintf(stderr,
-              "[main:73] Failed to connect to: %s:%s%s \n",
-              client_pool->host, client_pool->port, filename);
-      exit(3);
-    }
     //GET request
-    GET(clientfd, filename);
+    GET(client_pool->clientfd, client_pool->filename);
     //RELEASES TO ANOTHER THREAD
     pthread_mutex_unlock(&(client_pool->work_mutex));
     //RECEIVE
-    while (recv(clientfd, buf, BUF_SIZE, 0) > 0)
+    while (recv(client_pool->clientfd, buf, BUF_SIZE, 0) > 0)
     {
       fputs(buf, stdout);
       memset(buf, 0, BUF_SIZE);
@@ -164,6 +159,7 @@ static void *client_worker_fifo(void *arg)
     pthread_barrier_wait(&barrier);
     //then repeat
   }
+  return NULL;
 }
 
 static void *client_worker_concur(void *arg)
@@ -171,17 +167,8 @@ static void *client_worker_concur(void *arg)
   char buf[BUF_SIZE];
   while (1)
   {
-    int clientfd = establishConnection(getHostInfo(client_pool->host, client_pool->port));
-    if (clientfd == -1)
-    {
-      fprintf(stderr,
-              "[main:73] Failed to connect to: %s:%s%s \n",
-              client_pool->host, client_pool->port, filename);
-      exit(3);
-    }
-
-    GET(clientfd, filename);
-    while (recv(clientfd, buf, BUF_SIZE, 0) > 0)
+    GET(client_pool->clientfd, client_pool->filename);
+    while (recv(client_pool->clientfd, buf, BUF_SIZE, 0) > 0)
     {
       fputs(buf, stdout);
       memset(buf, 0, BUF_SIZE);
@@ -190,6 +177,7 @@ static void *client_worker_concur(void *arg)
     pthread_barrier_wait(&barrier);
     //then repeat
   }
+  return NULL;
 }
 
 int main(int argc, char **argv)
@@ -221,10 +209,10 @@ int main(int argc, char **argv)
   switch (schedalg)
   {
   case CONCUR:
-    tpool_init_client(client_pool, atoi(argv[3]), client_worker_concur, argv[1], argv[2]);
+    tpool_init_client(client_pool, atoi(argv[3]), client_worker_concur, argv[1], argv[2], argv[5]);
     break;
   case FIFO:
-    tpool_init_client(client_pool, atoi(argv[3]), client_worker_fifo, argv[1], argv[2]);
+    tpool_init_client(client_pool, atoi(argv[3]), client_worker_fifo, argv[1], argv[2], argv[5]);
     break;
   default:
     exit(0);

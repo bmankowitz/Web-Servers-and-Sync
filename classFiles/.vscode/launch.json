@@ -11,7 +11,7 @@
             "program": "${fileDirname}/${fileBasenameNoExtension}",
             //comment: args are as follows: ./server [portnum] [folder] [threads] [buffers] [schedalg] &
             //folder can be '.'
-            "args": ["1095", ".", "5", "5", "ANY"],            
+            "args": ["19203", ".", "5", "5", "ANY"],            
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -30,11 +30,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
-            //Your starting code for the web client is always invoked as:
-            //                  ./client [host] [portnum] [filename]
-            //Your finished web client must be invoked exactly as follows: 
-            //                  ./client [host] [portnum] [threads] [schedalg] [filename1] [filename2] 
-            "args": ["localhost", "2019", "favorite.html"],
+            "args": ["localhost", "19203", "5", "FIFO", "/index.html"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
