@@ -75,7 +75,6 @@ long long serverStart;
 long long current;
 
 //STAT KEEPING:
-//TODO: do these need to be static?
 int globalDispatchCount;
 int globalCompletedCount;
 int globalThreadNumber; //number of threads created so far;
@@ -448,7 +447,7 @@ struct {
 		}
 		else{
 			//there are no jobs in any buffer
-			//TODO: what should we do
+			warn("no jobs in buffer");
 		}
 		/*setting our job's dispatch count to the global one, then incrementing the globalDispatchCount by 1*/
 		result->dispatch_count = globalDispatchCount++;
@@ -488,7 +487,7 @@ struct {
 		}
 
     	/* Catch, ignore and handle signals */
-    	//TODO: Implement a working signal handler */
+    	//TODO: Implement a working signal handler if we want*/
     	signal(SIGCHLD, SIG_IGN);
     	signal(SIGHUP, SIG_IGN);
 
