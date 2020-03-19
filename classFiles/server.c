@@ -17,6 +17,9 @@
 #include <stdint.h>
 #include <sys/time.h>
 #include <time.h>
+#include <signal.h>
+#include <sys/stat.h>
+
 #define VERSION 25
 #define BUFSIZE 8096
 #define ERROR      42
@@ -82,6 +85,7 @@ job_t getJob(tpool_t *pool);//not sure if there is a star here or an & - but thi
 void web(job_t *job, tstats_t thread_stats,  int hit);//declare the web function
 char* getStatHeader(job_t *job, tstats_t thread, long len, char* fstr);
 long long getTimeInMilliseconds();
+int daemonize();
 
 static int schedalg;	//the scheduling algorithm to be performed. Mustbe one of ANY, FIFO, HPIC, or HPHC. 
 
@@ -458,7 +462,67 @@ struct {
     	struct timeval tv;
     	gettimeofday(&tv,NULL);
     	return (long long)(((long long)tv.tv_sec)*1000)+(tv.tv_usec/1000);
-}
+	}
+	int daemonize(){
+		//logger(int type, char *s1, char *s2, int socket_fd)
+		//logger(ERROR, "system call", "socket", 0)
+		pid_t pid;
+		/* Fork off the parent process */
+    	pid = fork();
+
+    	/* An error occurred */
+   		if (pid < 0){
+			logger(ERROR, "system call", "fork", getpid());
+        	exit(EXIT_FAILURE);
+		}
+
+    	/* Success: Let the parent terminate */
+    	if (pid > 0){
+        	exit(EXIT_SUCCESS);
+		}
+
+    	/* On success: The child process becomes session leader */
+    	if (setsid() < 0){
+			logger(ERROR, "system call", "setsid", getpid());
+        	exit(EXIT_FAILURE);
+		}
+
+    	/* Catch, ignore and handle signals */
+    	//TODO: Implement a working signal handler */
+    	signal(SIGCHLD, SIG_IGN);
+    	signal(SIGHUP, SIG_IGN);
+
+    	/* Fork off for the second time*/
+    	pid = fork();
+
+    	/* An error occurred */
+    	if (pid < 0)
+			logger(ERROR, "system call", "second fork", getpid());
+        	exit(EXIT_FAILURE);
+
+    	/* Success: Let the parent terminate */
+    	if (pid > 0)
+        	exit(EXIT_SUCCESS);
+
+    	/* Set new file permissions */
+    	umask(0);
+
+    	/* Change the working directory to the root directory */
+    	/* or another appropriated directory */
+    	if((pid = chdir("/") < 0)){
+			logger(ERROR, "system call", "chdir", getpid());
+		}
+
+    	/* Close all open file descriptors */
+    	int x;
+    	for (x = sysconf(_SC_OPEN_MAX); x>=0; x--)
+    	{
+        	if((pid =close (x)) < 0){
+				logger(ERROR, "system call", "close", getpid());
+			}
+    	}
+
+	}
 		
 		int main(int argc, char **argv){
 			serverStart = getTimeInMilliseconds();//time at the start of the server
@@ -467,10 +531,15 @@ struct {
 				argv[2] ==> folder ... what is this exactly?
 				argv[3] ==> worker thread num
 				argv[4] ==> how much space in buffer
-				argv[5] ==> scheduling policy*/
+				argv[5] ==> scheduling policy
+				argv[6] ==> daemonize*/
 			/*This line below initiates the thread pool*/
 			tpool_init(&the_pool, atoi(argv[3]), atoi(argv[4]), tpool_worker);
-			
+			//Determine if we should run as daemon:
+			if(strcmp(argv[6], "-d") == 0){
+				daemonize();
+				logger(LOG, "daemonize", "successful", getpid());
+			}
 			//Set the schedalg:
 			if(strcmp(argv[5], "ANY")==0) schedalg = ANY;
 			else if(strcmp(argv[5], "FIFO")==0) schedalg = FIFO;
@@ -532,7 +601,7 @@ struct {
 			serv_addr.sin_port = htons(port);
 
 			if (bind(listenfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){//bind assigns the address specified by serv_addr to a socket reffered to a file descriptor listenfd
-				logger(ERROR, "system call", "bind", 0);//getting an errno #98: address in use already...FIXME:
+				logger(ERROR, "system call", "bind", 0);
 			}
 			if (listen(listenfd, 64) < 0){
 				logger(ERROR, "system call", "listen", 0);
@@ -566,16 +635,17 @@ struct {
 				buf = (char*)malloc(BUFSIZE);
 				recv(socketfd, buf, BUFSIZE, flags);
 				buf[BUFSIZE] = '\0';
-				//int len;
 
 
 				//FOR TESTING PURPOSES ONLY: TODO: REMOVE THE LINE BELOW
 				//tpool_add_work(&the_pool, *jobToAdd); /* this is where the action happens */
+
 				for (i = 0; extensions[i].ext != 0; i++){
-					//len = strlen(extensions[i].ext);//jpeg == 4
-					//this is checking the last len digits of the request, and comparing it to our list
+					//this is checking the buf for the substring in extensions[i].ext, ie all supported extensions
 					if (strstr(buf, extensions[i].ext) != NULL)
 					{
+						//have the image status default to true
+						jobToAdd->image = true;
 						if (strstr(buf, ".htm") != NULL || strstr(buf, ".html") != NULL)
 						{
 							jobToAdd->image = false;//YOU ARE RIGHT!!!
