@@ -1,34 +1,24 @@
 # Programming Assignment 2: Web Servers and Synchronization
 
-##The name and login information for all project partners.
+## Contact Info
 Benjamin Mankowitz		bmankowi@mail.yu.edu
 Ari Roffe				aroffe@mail.yu.edu
 ## A brief description of how you divided the work between you. 
-For the majority of the code, we used the Live Share feature of Visual Studio Code and a phone call to code together and plan our design. For the times that we worked asyncronously, we used a shared git repository to work together remotely, merging changes if needed. Our git server is https://github.com/bmankowitz/Web-Servers-and-Sync and our commit history is at the end of this file.
+For the majority of the code, we used the Live Share feature of Visual Studio Code and a phone call to code together and plan our design. For the times that we worked asyncronously, we used a shared git repository to work together remotely, merging changes when needed. Our git server is https://github.com/bmankowitz/Web-Servers-and-Sync and our commit history is at the end of this file.
 
-##Design overview and specification: 
-ARI: More on part 1
+## Design overview and specification: 
+- A basic, single-threaded server was provided. We initially implemented the a [scheduling algorithm](https://www.tutorialspoint.com/operating_system/os_process_scheduling_algorithms.htm) using two buffers, one high priority (HP) and one low priority (LP). For HPHC and HPIC, we pushed the high priority data to the HP buffer, and other data to the LP buffer. For the FIFO and ANY schedulinh algorithm, we only used one buffer (ANY defaulted to FIFO). To ensure the buffer size is never exceeded, we checked that buffer1.size + buffer2.size never exceeds the maximum amount of threads provided. When preprocessing the request to determine what type it is, we used the `recv` command with the `MSG_PEEK` flag so that the data is still there for the `web()` function.
 
-We used the basic web server provided to us with a few modifications. We implemented the scheduling algorithm using two buffers, one high priority (HP) and one low priority (LP). For HPHC and HPIC, we pushed the high priority data to the HP buffer, and other data to the LP buffer. For FIFO and ANY we only used one buffer, with ANY just using FIFO. To ensure the buffer size is never exceeded, we make sure not to add to the buffer if the buffer1.size + buffer2.size is greater than the maximum provided. When preprocessing the request to determine what type it is, we used the `recv` command with the `MSG_PEEK` flag so that the data is still there for the `web()` function.
+- For `stats`, we added all of the job specific fields in the `job_t` struct. For the thread specific stats, we created a new `t_stats` struct assigned to each thread. We used `gettimeofday()` in conjunction with a local function to get [epoch time](https://en.wikipedia.org/wiki/Epoch_(computing)) in milliseconds. To properly return all of the custom headers, we created a function `getStatHeaders()` to provide the header string.
 
-For stats that we needed to keep track of, we added all of the job specific fields in the `job_t` struct. For the thread specific stats, we created a new `t_stats` struct assigned to each thread. We used `gettimeofday()` in conjunction with a local function to get epoch time in milliseconds. To properly return all of the custom headers, we created a function `getStatHeaders()` to provide the header string.
+- For [daemonization](https://en.wikipedia.org/wiki/Daemon_(computing)), we used the stackoverflow link in the project instructions to implement daemonization.
 
-ARI: More on client code/part 4
+## Issues:
 
-For daemonization, we used the stackoverflow link in the project instructions to implement daemonization, making sure to check all system functions for errors
+### Guiding Questions:
+Describe how you tested the functionality of your web server. Describe how can you use the various versions of your extended client to see if the server is handing requests concurrently and implementing the FIFO, HPSC, or HPDC policies. Specifically, what are the exact parameters one should pass to the client and the server to demonstrate that the server is handling requests concurrently? To demonstrate that the server is correctly running the FIFO policy? the HPSC policy? the HPDC policy? In each case, if your client and server are behaving correctly, what output and statistics should you see? 
 
-##Known bugs or problems: 
-ARI:
-
-A list of any features that you did not implement or that you know are not working correctly 
-
-##Testing: 
-ARI:
-This requirement an aspect that I am very interested in. I will assign points for answering these questions. Describe how you tested the functionality of your web server. Describe how can you use the various versions of your extended client to see if the server is handing requests concurrently and implementing the FIFO, HPSC, or HPDC policies. 
-Specifically, what are the exact parameters one should pass to the client and the server to demonstrate that the server is handling requests concurrently? To demonstrate that the server is correctly running the FIFO policy? the HPSC policy? the HPDC policy? In each case, if your client and server are behaving correctly, what output and statistics should you see? 
-
-
-###Git Commit Log
+### Git Commit Log
 ```
 commit 6f610a8823c15cb2ef537a3a43e12eecb50e0f5e
 Author: bmankowitz <bmankowi@mail.yu.edu>
